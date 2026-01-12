@@ -28,8 +28,8 @@ io.on('connection', (socket) => {
     });
 
     // Example event listener
-    socket.on('join_room', (roomId, playerName, code) => {
-        socket.join(roomId);
+    socket.on('join_room', async (roomId, playerName, code) => {
+        await socket.join(roomId);
 
         // Initialize room if not exists
         if (!rooms[roomId]) {
