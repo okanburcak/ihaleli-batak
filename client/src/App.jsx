@@ -267,21 +267,21 @@ function App() {
 
             {/* BIDDING UI */}
             {roomState?.state === 'BIDDING' && bidTurn?.playerId === socket.id && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 p-6 rounded-xl flex flex-col items-center z-50">
-                    <h3 className="text-white text-xl mb-4">How much to bid? (Min: {bidTurn.minBid})</h3>
-                    <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/90 p-4 md:p-6 rounded-xl flex flex-col items-center z-50 w-[90%] max-w-md border border-yellow-500">
+                    <h3 className="text-white text-lg md:text-xl mb-4 text-center">How much to bid? (Min: {bidTurn.minBid})</h3>
+                    <div className="grid grid-cols-4 gap-2 mb-4 w-full">
                         {[5, 6, 7, 8, 9, 10, 11, 12].map(num => (
                             <button
                                 key={num}
                                 disabled={num < bidTurn.minBid}
                                 onClick={() => sendBid(num)}
-                                className={`p-2 rounded font-bold ${num < bidTurn.minBid ? 'bg-gray-600 text-gray-400' : 'bg-yellow-500 hover:bg-yellow-400 text-black'}`}
+                                className={`p-2 rounded font-bold text-sm md:text-base ${num < bidTurn.minBid ? 'bg-gray-600 text-gray-400' : 'bg-yellow-500 hover:bg-yellow-400 text-black'}`}
                             >
                                 {num}
                             </button>
                         ))}
                     </div>
-                    <button onClick={() => sendBid(0)} className="w-full py-2 bg-red-600 text-white rounded font-bold hover:bg-red-500">
+                    <button onClick={() => sendBid(0)} className="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-500 text-sm md:text-base uppercase tracking-wider">
                         PAS
                     </button>
                 </div>
@@ -289,17 +289,17 @@ function App() {
 
             {/* EXCHANGE CARDS UI */}
             {roomState?.state === 'EXCHANGE_CARDS' && roomState.winningBid.playerId === socket.id && (
-                <div className="absolute top-0 left-0 w-full h-full bg-black/90 z-[60] flex flex-col items-center justify-center p-4">
-                    <h3 className="text-white text-3xl mb-2 font-bold text-yellow-500">Gömü Seçimi</h3>
-                    <p className="text-gray-300 mb-8">Elinizden yere atacağınız 4 kartı seçin. Sonrasında yerdeki 4 kartı alacaksınız.</p>
+                <div className="absolute top-0 left-0 w-full h-full bg-black/95 z-[60] flex flex-col items-center justify-center p-2 overflow-y-auto">
+                    <h3 className="text-white text-2xl md:text-3xl mb-2 font-bold text-yellow-500 text-center mt-8">Gömü Seçimi</h3>
+                    <p className="text-gray-300 mb-4 md:mb-8 text-center text-sm md:text-base px-4">Elinizden yere atacağınız 4 kartı seçin.</p>
 
-                    <div className="flex flex-wrap justify-center gap-2 max-w-5xl mb-8">
+                    <div className="flex flex-wrap justify-center gap-2 max-w-5xl mb-8 pb-20">
                         {myHand.map((card, idx) => {
                             const isSelected = selectedForBury.some(c => c.suit === card.suit && c.rank === card.rank);
                             return (
                                 <div
                                     key={`pool-${card.suit}-${card.rank}-${idx}`}
-                                    className={`relative transition-all duration-200 cursor-pointer hover:transform hover:-translate-y-4 ${isSelected ? '-translate-y-8 ring-4 ring-red-500 rounded-lg' : ''}`}
+                                    className={`relative transition-all duration-200 cursor-pointer hover:transform hover:-translate-y-4 ${isSelected ? '-translate-y-6 ring-4 ring-red-500 rounded-lg scale-110 z-10' : ''}`}
                                 >
                                     <Card card={card} isPlayable={true} onClick={() => toggleBury(card)} showGomu={true} />
                                 </div>
@@ -307,44 +307,58 @@ function App() {
                         })}
                     </div>
 
-                    <button
-                        disabled={selectedForBury.length !== 4}
-                        onClick={submitExchange}
-                        className={`px-8 py-4 rounded-xl font-bold text-xl ${selectedForBury.length === 4 ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}
-                    >
-                        ONAYLA VE GÖM
-                    </button>
+                    <div className="fixed bottom-4 left-0 w-full px-4">
+                        <button
+                            disabled={selectedForBury.length !== 4}
+                            onClick={submitExchange}
+                            className={`w-full py-4 rounded-xl font-bold text-lg md:text-xl shadow-xl ${selectedForBury.length === 4 ? 'bg-green-600 hover:bg-green-500 text-white animate-pulse' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}
+                        >
+                            ONAYLA VE GÖM
+                        </button>
+                    </div>
 
                 </div>
-            )}{/* TRUMP SELECTION UI */}
+            )}
+
+            {/* TRUMP SELECTION UI */}
             {roomState?.state === 'TRUMP_SELECTION' && roomState.winningBid.playerId === socket.id && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 p-6 rounded-xl flex flex-col items-center z-50">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 p-6 rounded-xl flex flex-col items-center z-50 w-[90%] max-w-sm">
                     <h3 className="text-white text-xl mb-4">Select Trump</h3>
-                    <div className="flex gap-4">
+                    <div className="flex justify-center gap-4 w-full">
                         {['♠', '♥', '♦', '♣'].map(suit => (
                             <button
                                 key={suit}
                                 onClick={() => selectTrump(suit)}
-                                className="text-4xl p-4 bg-white rounded hover:bg-gray-200"
+                                className="flex-1 aspect-square flex items-center justify-center bg-white rounded-lg shadow-lg hover:bg-gray-200"
                             >
-                                <span className={(suit === '♥' || suit === '♦') ? 'text-red-500' : 'text-black'}>{suit}</span>
+                                <span className={`text-3xl md:text-5xl ${(suit === '♥' || suit === '♦') ? 'text-red-500' : 'text-black'}`}>{suit}</span>
                             </button>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* MY HAND */}
-            <div className="fixed bottom-0 left-0 w-full h-40 bg-black/30 backdrop-blur-sm flex items-center justify-center gap-[-2rem]">
-                <div className="flex justify-center items-end h-full py-4 space-x-[-2rem]">
+            {/* MY HAND - Fixed Bottom */}
+            <div className="fixed bottom-0 left-0 w-full h-24 md:h-40 z-40 bg-gradient-to-t from-black via-black/50 to-transparent flex items-end justify-center pb-2 px-2 overflow-hidden">
+                <div className="flex items-end justify-center transform translate-y-4 hover:translate-y-0 transition-transform duration-300">
                     {myHand.map((card, idx) => (
-                        <Card
-                            key={`${card.suit}-${card.rank}`}
-                            card={card}
-                            isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
-                            onClick={playCard}
-                            showGomu={true}
-                        />
+                        <div
+                            key={`${card.suit}-${card.rank}-${idx}`}
+                            className={`
+                                transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
+                                ${idx !== 0 ? '-ml-8 md:-ml-12' : ''}
+                            `}
+                            style={{
+                                zIndex: idx
+                            }}
+                        >
+                            <Card
+                                card={card}
+                                isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
+                                onClick={playCard}
+                                showGomu={true}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>

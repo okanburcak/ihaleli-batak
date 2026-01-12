@@ -2,7 +2,7 @@ import React from 'react';
 
 const SuitIcon = ({ suit }) => {
     const color = (suit === '♥' || suit === '♦') ? 'text-red-500' : 'text-black';
-    return <span className={`${color} text-2xl`}>{suit}</span>;
+    return <span className={`${color} text-xl md:text-2xl`}>{suit}</span>;
 };
 
 const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = false }) => {
@@ -21,25 +21,25 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
         <div
             onClick={() => isPlayable ? onClick(card) : null}
             className={`
-                w-20 h-28 bg-white rounded-lg shadow-lg flex flex-col items-center justify-between p-2 
+                w-14 h-20 md:w-20 md:h-28 bg-white rounded-lg shadow-lg flex flex-col items-center justify-between p-1 md:p-2 
                 cursor-pointer transition-transform transform 
                 ${isPlayable ? 'hover:-translate-y-4 hover:shadow-xl' : ''}
                 ${isPlayed ? 'z-0' : 'hover:z-10'}
             `}
         >
-            <div className="w-full flex justify-start text-lg font-bold">
+            <div className="w-full flex justify-start text-sm md:text-lg font-bold">
                 <span className={(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}>
                     {card.rank}
                 </span>
             </div>
             <SuitIcon suit={card.suit} />
-            <div className="w-full flex justify-end text-lg font-bold transform rotate-180">
+            <div className="w-full flex justify-end text-sm md:text-lg font-bold transform rotate-180">
                 <span className={(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}>
                     {card.rank}
                 </span>
             </div>
             {card.fromKitty && showGomu && (
-                <div className="absolute top-0 right-0 bg-purple-500 text-xs px-1 text-white rounded-bl">G</div>
+                <div className="absolute top-0 right-0 bg-purple-500 text-[10px] md:text-xs px-1 text-white rounded-bl">G</div>
             )}
         </div>
     );
