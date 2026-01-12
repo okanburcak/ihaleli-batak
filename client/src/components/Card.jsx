@@ -27,16 +27,18 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
                 ${isPlayed ? 'z-0' : 'hover:z-10'}
             `}
         >
-            <div className="w-full flex justify-start text-sm md:text-lg font-bold">
-                <span className={(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}>
-                    {card.rank}
-                </span>
+            <div className="w-full flex justify-start">
+                <div className={`flex flex-col items-center leading-none ${(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}`}>
+                    <span className="text-sm md:text-lg font-bold">{card.rank}</span>
+                    <span className="text-xs md:text-base">{card.suit}</span>
+                </div>
             </div>
             <SuitIcon suit={card.suit} />
-            <div className="w-full flex justify-end text-sm md:text-lg font-bold transform rotate-180">
-                <span className={(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}>
-                    {card.rank}
-                </span>
+            <div className="w-full flex justify-end transform rotate-180">
+                <div className={`flex flex-col items-center leading-none ${(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}`}>
+                    <span className="text-sm md:text-lg font-bold">{card.rank}</span>
+                    <span className="text-xs md:text-base">{card.suit}</span>
+                </div>
             </div>
             {card.fromKitty && showGomu && (
                 <div className="absolute top-0 right-0 bg-purple-500 text-[10px] md:text-xs px-1 text-white rounded-bl">G</div>
