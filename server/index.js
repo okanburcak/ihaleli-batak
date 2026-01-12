@@ -28,7 +28,7 @@ io.on('connection', (socket) => {
     });
 
     // Example event listener
-    socket.on('join_room', (roomId, playerName) => {
+    socket.on('join_room', (roomId, playerName, code) => {
         socket.join(roomId);
 
         // Initialize room if not exists
@@ -39,12 +39,21 @@ io.on('connection', (socket) => {
         }
 
         const room = rooms[roomId];
-        const success = room.addPlayer(socket, playerName);
+        const result = room.addPlayer(socket, playerName, code);
 
-        if (!success) {
-            socket.emit('error', 'Room is full');
+        if (!result.success) {
+            socket.emit('error', result.message);
+            // Optionally leave the room if join failed logic-wise
+            socket.leave(roomId);
             return;
         }
+
+        // Handle Admin Start Game Listener?
+        socket.on('start_game', () => {
+            if (result.message.includes('Admin')) { // Simple check, better to verify socket match
+                room.startGame(); // Add safety inside Room.startGame too
+            }
+        });
 
         // Forward Game Actions
         socket.on('bid', (amount) => room.handleBid(socket.id, amount));

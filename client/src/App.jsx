@@ -17,6 +17,7 @@ function App() {
     const [isJoined, setIsJoined] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
     const [playerName, setPlayerName] = useState('');
+    const [joinCode, setJoinCode] = useState(''); // For joining via code
 
     useEffect(() => {
         function onConnect() {
@@ -131,7 +132,7 @@ function App() {
 
     const joinGame = () => {
         if (playerName.trim()) {
-            socket.emit('join_room', 'room1', playerName);
+            socket.emit('join_room', 'room1', playerName, joinCode);
             setIsJoined(true);
         } else {
             alert("Lütfen bir isim girin!");
@@ -177,15 +178,20 @@ function App() {
                 <h1 className="text-4xl font-bold mb-8">İhaleli Batak</h1>
                 <div className="flex flex-col gap-4">
                     <input
-                        type="text"
-                        placeholder="Adını gir..."
-                        className="px-4 py-2 rounded text-black font-bold outline-none focus:ring-4 ring-yellow-500"
                         value={playerName}
                         onChange={(e) => setPlayerName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && joinGame()}
                     />
+                    <input
+                        type="text"
+                        placeholder="Oda Kodu (Varsa)"
+                        className="px-4 py-2 rounded text-black font-bold outline-none focus:ring-4 ring-yellow-500 uppercase"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        maxLength={4}
+                    />
                     <button onClick={joinGame} className="px-6 py-3 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-400">
-                        Hemen Oyna
+                        Odaya Katıl
                     </button>
                     <button
                         onClick={() => setShowAdmin(true)}
@@ -204,18 +210,46 @@ function App() {
             <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white">
                 <h1 className="text-3xl font-bold mb-4">Lobi: {roomState.roomId}</h1>
                 <div className="bg-green-800 p-8 rounded-xl shadow-lg w-96">
-                    <h2 className="text-xl mb-4 border-b border-green-600 pb-2">Bağlı Oyuncular ({roomState.players.length}/4)</h2>
-                    <ul className="space-y-2">
-                        {roomState.players.map((p, idx) => (
-                            <li key={idx} className="flex justify-between items-center bg-green-700/50 p-2 rounded">
-                                <span>{p.name}</span>
-                                {p.id === socket.id && <span className="text-xs bg-yellow-500 text-black px-1 rounded">SEN</span>}
-                            </li>
-                        ))}
+                    <h2 className="text-xl mb-4 border-b border-green-600 pb-2">Bağlı Oyuncular</h2>
+                    <ul className="space-y-4">
+                        {roomState.players.map((p, idx) => {
+                            if (!p) return (
+                                <li key={idx} className="flex flex-col bg-green-700/30 p-2 rounded border border-dashed border-gray-500">
+                                    <span className="text-gray-400 italic">Boş Koltuk {idx + 1}</span>
+                                    {/* Show Code Only to Admin (Seat 0) */}
+                                    {roomState.players[0]?.id === socket.id && idx > 0 && (
+                                        <div className="text-yellow-400 font-mono text-lg mt-1 font-bold">
+                                            KOD: {roomState.seatCodes[idx]}
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                            return (
+                                <li key={idx} className="flex justify-between items-center bg-green-700/50 p-2 rounded">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold">{p.name}</span>
+                                        <span className={`text-[10px] ${p.connected ? 'text-green-400' : 'text-red-400'}`}>
+                                            {p.connected ? 'Bağlı' : 'Koptu'}
+                                        </span>
+                                    </div>
+                                    {p.id === socket.id && <span className="text-xs bg-yellow-500 text-black px-1 rounded">SEN</span>}
+                                    {p.isAdmin && <span className="text-xs bg-red-600 text-white px-1 rounded ml-2">YÖNETİCİ</span>}
+                                </li>
+                            );
+                        })}
                     </ul>
-                    <div className="mt-6 text-center text-gray-300 animate-pulse">
-                        Diğer oyuncular bekleniyor...
-                    </div>
+
+                    {/* Admin Start Button */}
+                    {roomState.players[0]?.id === socket.id && (
+                        <div className="mt-8 border-t border-green-600 pt-4">
+                            <button
+                                onClick={() => socket.emit('start_game')}
+                                className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-lg animate-pulse"
+                            >
+                                OYUNU BAŞLAT
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         )
