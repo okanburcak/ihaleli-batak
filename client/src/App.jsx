@@ -134,7 +134,7 @@ function App() {
             socket.emit('join_room', 'room1', playerName);
             setIsJoined(true);
         } else {
-            alert("Please enter a name!");
+            alert("Lütfen bir isim girin!");
         }
     };
 
@@ -202,19 +202,19 @@ function App() {
     if (!inGame && roomState?.state === 'WAITING') {
         return (
             <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white">
-                <h1 className="text-3xl font-bold mb-4">Lobby: {roomState.roomId}</h1>
+                <h1 className="text-3xl font-bold mb-4">Lobi: {roomState.roomId}</h1>
                 <div className="bg-green-800 p-8 rounded-xl shadow-lg w-96">
-                    <h2 className="text-xl mb-4 border-b border-green-600 pb-2">Connected Players ({roomState.players.length}/4)</h2>
+                    <h2 className="text-xl mb-4 border-b border-green-600 pb-2">Bağlı Oyuncular ({roomState.players.length}/4)</h2>
                     <ul className="space-y-2">
                         {roomState.players.map((p, idx) => (
                             <li key={idx} className="flex justify-between items-center bg-green-700/50 p-2 rounded">
                                 <span>{p.name}</span>
-                                {p.id === socket.id && <span className="text-xs bg-yellow-500 text-black px-1 rounded">YOU</span>}
+                                {p.id === socket.id && <span className="text-xs bg-yellow-500 text-black px-1 rounded">SEN</span>}
                             </li>
                         ))}
                     </ul>
                     <div className="mt-6 text-center text-gray-300 animate-pulse">
-                        Waiting for more players...
+                        Diğer oyuncular bekleniyor...
                     </div>
                 </div>
             </div>
@@ -225,7 +225,7 @@ function App() {
     if (!roomState) {
         return (
             <div className="min-h-screen bg-green-900 flex items-center justify-center text-white">
-                Loading...
+                Yükleniyor...
             </div>
         )
     }
@@ -240,11 +240,11 @@ function App() {
                         onClick={() => setShowAdmin(true)}
                         className="text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1 rounded text-white border border-red-500"
                     >
-                        ADMIN
+                        YÖNETİCİ
                     </button>
                 </div>
                 <div className={isConnected ? "text-green-400" : "text-red-400"}>
-                    {isConnected ? "Connected" : "Disconnected"}
+                    {isConnected ? "Bağlı" : "Bağlantı Yok"}
                 </div>
             </div>
 
@@ -268,7 +268,7 @@ function App() {
             {/* BIDDING UI */}
             {roomState?.state === 'BIDDING' && bidTurn?.playerId === socket.id && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/90 p-4 md:p-6 rounded-xl flex flex-col items-center z-50 w-[90%] max-w-md border border-yellow-500">
-                    <h3 className="text-white text-lg md:text-xl mb-4 text-center">How much to bid? (Min: {bidTurn.minBid})</h3>
+                    <h3 className="text-white text-lg md:text-xl mb-4 text-center">İhale Teklifiniz? (Min: {bidTurn.minBid})</h3>
                     <div className="grid grid-cols-4 gap-2 mb-4 w-full">
                         {[5, 6, 7, 8, 9, 10, 11, 12].map(num => (
                             <button
@@ -323,7 +323,7 @@ function App() {
             {/* TRUMP SELECTION UI */}
             {roomState?.state === 'TRUMP_SELECTION' && roomState.winningBid.playerId === socket.id && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 p-6 rounded-xl flex flex-col items-center z-50 w-[90%] max-w-sm">
-                    <h3 className="text-white text-xl mb-4">Select Trump</h3>
+                    <h3 className="text-white text-xl mb-4">Koz Seçin</h3>
                     <div className="flex justify-center gap-4 w-full">
                         {['♠', '♥', '♦', '♣'].map(suit => (
                             <button
