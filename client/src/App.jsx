@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api, setPlayerId, getPlayerId } from './api'
+import { useSound } from './contexts/SoundContext'
 import GameBoard from './components/GameBoard'
 import Card from './components/Card'
 import AdminPanel from './components/AdminPanel'
@@ -88,6 +89,58 @@ function App() {
 
     const POLLING_RATE = 1000;
 
+    const { playSound } = useSound();
+    const prevRoomState = useRef(null);
+
+    useEffect(() => {
+        if (!roomState) {
+            prevRoomState.current = null;
+            return;
+        }
+
+        const prev = prevRoomState.current;
+
+        // 1. Turn Start Sound
+        if (roomState.currentTurn === myPlayerId) {
+            // Only play if it wasn't my turn before
+            if (!prev || prev.currentTurn !== myPlayerId) {
+                playSound('turn');
+            }
+        }
+
+        // 2. Card Play Sound (Someone played a card)
+        if (prev && roomState.currentTrick && prev.currentTrick) {
+            if (roomState.currentTrick.length > prev.currentTrick.length) {
+                playSound('play');
+            }
+        }
+
+        // 3. Trick End Logic (Win vs Shame)
+        if (prev && prev.currentTrick?.length > 0 && (!roomState.currentTrick || roomState.currentTrick.length === 0)) {
+            // Trick just cleared. The NEW currentTurn is the winner of the trick (usually).
+            // We should check if I am the winner.
+            if (roomState.currentTurn === myPlayerId) {
+                playSound('win');
+            } else {
+                playSound('shame');
+            }
+        }
+
+        prevRoomState.current = roomState;
+    }, [roomState, myPlayerId, playSound]);
+
+    // Hurry Timer Effect
+    useEffect(() => {
+        if (!roomState || !roomState.currentTurn) return;
+
+        // Timer to play hurry sound if turn takes > 5s
+        const timer = setTimeout(() => {
+            playSound('hurry');
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [roomState?.currentTurn, playSound]);
+
     useEffect(() => {
         // Check for existing session
         const storedId = getPlayerId();
@@ -161,6 +214,7 @@ function App() {
     };
 
     const joinGame = async () => {
+        playSound('click');
         if (!playerName.trim()) {
             alert("Lütfen bir isim girin!");
             return;
@@ -181,6 +235,7 @@ function App() {
     };
 
     const sendBid = async (amount) => {
+        playSound('click');
         const res = await api.bid('room1', amount);
         if (res.error) {
             setErrorMsg(res.error);
@@ -191,6 +246,7 @@ function App() {
     }
 
     const selectTrump = async (suit) => {
+        playSound('click');
         const res = await api.selectTrump('room1', suit);
         if (res.error) setErrorMsg(res.error);
         else fetchState();
@@ -209,6 +265,7 @@ function App() {
     }
 
     const toggleBury = (card) => {
+        playSound('click');
         setSelectedForBury(prev => {
             const isSelected = prev.some(c => c.suit === card.suit && c.rank === card.rank);
             if (isSelected) {
@@ -221,6 +278,7 @@ function App() {
     }
 
     const submitExchange = async () => {
+        playSound('click');
         if (selectedForBury.length !== 4) return;
         const res = await api.exchangeCards('room1', selectedForBury);
         if (res.error) setErrorMsg(res.error);
@@ -231,6 +289,7 @@ function App() {
     }
 
     const startGame = async () => {
+        playSound('click');
         await api.startGame('room1');
         fetchState();
     }
@@ -354,9 +413,9 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-stone-900 flex flex-col items-center justify-start p-4 relative overflow-hidden">
+        <div className="h-screen bg-stone-900 flex flex-col items-center justify-center p-2 md:p-4 relative overflow-hidden">
             {/* Header */}
-            <div className="w-full flex justify-between text-white mb-2 z-50">
+            <div className="absolute top-0 left-0 w-full flex justify-between text-white p-2 z-50 bg-black/20 backdrop-blur-sm">
                 <div className="flex gap-4 items-center">
                     <span>Room: {roomState?.roomId}</span>
                     <button
@@ -382,7 +441,7 @@ function App() {
             )}
 
             {/* Game Area */}
-            <div className="w-full max-w-4xl mb-32">
+            <div className="w-full max-w-4xl flex-grow flex items-center justify-center pb-24 md:pb-32">
                 <GameBoard roomState={roomState} myPlayerId={myPlayerId} />
             </div>
 

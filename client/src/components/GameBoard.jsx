@@ -67,7 +67,7 @@ const GameBoard = ({ roomState, myPlayerId }) => {
     };
 
     return (
-        <div className="relative w-full h-[400px] md:h-[600px] bg-green-800 rounded-xl border-4 border-green-900 shadow-2xl p-2 md:p-4">
+        <div className="relative w-full aspect-square md:aspect-video h-[55vh] md:h-[65vh] max-h-[600px] bg-green-800 rounded-xl border-4 border-green-900 shadow-2xl p-2 md:p-4">
 
             {/* Info Panel: Trump & Bid */}
             <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-black/40 text-white p-1 md:p-2 rounded text-xs md:text-base">
@@ -115,8 +115,8 @@ const GameBoard = ({ roomState, myPlayerId }) => {
             </div>
 
             {/* BOTTOM PLAYER (ME) */}
-            <div className="absolute bottom-20 md:bottom-32 left-1/2 transform -translate-x-1/2">
-                <div className="mb-2 md:mb-4">
+            <div className="absolute bottom-16 md:bottom-24 left-1/2 transform -translate-x-1/2">
+                <div className="mb-0">
                     <Card card={getPlayerCardInTrick(orderedPlayers[0]?.id)} showGomu={myPlayerId === winningBid.playerId} />
                 </div>
             </div>
