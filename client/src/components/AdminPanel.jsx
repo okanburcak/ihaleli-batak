@@ -1,35 +1,38 @@
 import { useState, useEffect } from 'react';
-import { socket } from '../socket';
+import { api } from '../api';
 
 export default function AdminPanel({ onClose }) {
     const [players, setPlayers] = useState([]);
 
     useEffect(() => {
         // Initial fetch
-        socket.emit('admin_get_players');
+        fetchPlayers();
 
-        function onPlayerList(list) {
-            setPlayers(list);
-        }
-
-        socket.on('admin_player_list', onPlayerList);
-
-        // Auto refresh every 5 seconds
+        // Auto refresh every 2 seconds
         const interval = setInterval(() => {
-            socket.emit('admin_get_players');
-        }, 5000);
+            fetchPlayers();
+        }, 2000);
 
         return () => {
-            socket.off('admin_player_list', onPlayerList);
             clearInterval(interval);
         };
     }, []);
 
-    const kickPlayer = (socketId) => {
+    const fetchPlayers = async () => {
+        // We reuse getState('room1') for now as it's the only room
+        try {
+            const data = await api.getState('room1');
+            if (data && data.players) {
+                setPlayers(data.players.filter(p => p)); // Filter nulls
+            }
+        } catch (e) {
+            console.error("Admin poll error", e);
+        }
+    };
+
+    const kickPlayer = (playerId) => {
         if (confirm('Bu oyuncuyu atmak istediğinize emin misiniz?')) {
-            socket.emit('admin_kick_player', socketId);
-            // Optimistic update or wait for refresh
-            setTimeout(() => socket.emit('admin_get_players'), 500);
+            alert("Kick not implemented in polling version yet.");
         }
     };
 
@@ -37,7 +40,7 @@ export default function AdminPanel({ onClose }) {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100]">
             <div className="bg-gray-800 p-6 rounded-xl w-[600px] max-h-[80vh] overflow-y-auto text-white shadow-2xl border border-gray-600">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-red-500">Yönetici Paneli</h2>
+                    <h2 className="text-2xl font-bold text-red-500">Yönetici Paneli (Polling)</h2>
                     <button onClick={onClose} className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded">
                         Kapat
                     </button>
@@ -55,18 +58,10 @@ export default function AdminPanel({ onClose }) {
                                     <div>
                                         <div className="font-bold text-white text-lg">{p.name}</div>
                                         <div className="font-mono text-xs text-gray-400">{p.id}</div>
-                                        <div className="text-xs text-gray-500">Oda: {p.room} | Durum: {p.connected ? 'Bağlı' : 'Koptu'}</div>
+                                        <div className="text-xs text-gray-500">Seat: {p.seatIndex} | Durum: {p.connected ? 'Bağlı' : 'Koptu'}</div>
                                     </div>
-                                    {p.id !== socket.id && (
-                                        <button
-                                            onClick={() => kickPlayer(p.id)}
-                                            className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
-                                        >
-                                            AT
-                                        </button>
-                                    )}
-                                    {p.id === socket.id && (
-                                        <span className="text-xs bg-yellow-500 text-black px-2 py-1 rounded font-bold">SEN</span>
+                                    {p.isAdmin && (
+                                        <span className="text-xs bg-red-600 text-white px-2 py-1 rounded ml-2">ADMIN</span>
                                     )}
                                 </div>
                             ))}

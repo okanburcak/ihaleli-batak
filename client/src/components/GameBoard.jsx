@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Card from './Card';
-import { socket } from '../socket';
+
 
 const GameBoard = ({ roomState, myPlayerId }) => {
     if (!roomState) return <div>Yükleniyor...</div>;

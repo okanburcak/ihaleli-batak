@@ -1,105 +1,175 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
+const Room = require('./game/Room');
 
 const app = express();
 app.use(cors());
-
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Allow all for dev
-        methods: ["GET", "POST"]
-    }
-});
+app.use(express.json());
 
 const PORT = 3000;
 
-// Game State Storage (In-memory for now)
+// Game State Storage
 const rooms = {};
 
-io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+// Helper to get room
+const getRoom = (roomId) => {
+    if (!rooms[roomId]) {
+        rooms[roomId] = new Room(roomId);
+    }
+    return rooms[roomId];
+};
 
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        // Handle player leaving room logic here
-    });
+// --- Routes ---
 
-    // Example event listener
-    socket.on('join_room', async (roomId, playerName, code) => {
-        await socket.join(roomId);
+// Join Room
+app.post('/api/rooms/:roomId/join', (req, res) => {
+    const { roomId } = req.params;
+    const { name, code } = req.body; // Code is optional for Admin
 
-        // Initialize room if not exists
-        if (!rooms[roomId]) {
-            // Need to pass io instance to Room to emit events
-            const Room = require('./game/Room');
-            rooms[roomId] = new Room(roomId, io);
-        }
+    const room = getRoom(roomId);
+    const result = room.addPlayer(name, code);
 
-        const room = rooms[roomId];
-        const result = room.addPlayer(socket, playerName, code);
+    if (result.success) {
+        res.json(result);
+    } else {
+        res.status(400).json(result);
+    }
+});
 
-        if (!result.success) {
-            socket.emit('error', result.message);
-            // Optionally leave the room if join failed logic-wise
-            socket.leave(roomId);
-            return;
-        }
+// Get State (Polling Endpoint)
+app.get('/api/rooms/:roomId/state', (req, res) => {
+    const { roomId } = req.params;
+    const playerId = req.headers['x-player-id']; // Client sends their token/ID
 
-        // Handle Admin Start Game Listener?
-        socket.on('start_game', () => {
-            if (result.message.includes('Admin')) { // Simple check, better to verify socket match
-                room.startGame(); // Add safety inside Room.startGame too
-            }
-        });
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
 
-        // Forward Game Actions
-        socket.on('bid', (amount) => room.handleBid(socket.id, amount));
-        socket.on('select_trump', (suit) => room.handleTrumpSelection(socket.id, suit));
-        socket.on('exchange_cards', (cards) => room.handleCardExchange(socket.id, cards));
-        socket.on('play_card', (card) => room.handleCardPlay(socket.id, card));
-    });
+    if (!playerId) {
+        // Public State only (if needed, or error)
+        return res.json(room.getPublicState());
+    }
 
-    // Admin API
-    socket.on('admin_get_players', () => {
-        // Collect all connected sockets
-        const allSockets = [];
-        io.sockets.sockets.forEach((s) => {
-            // Find room for player
-            let playerRoom = "Lobby";
-            let playerName = "Unknown/Guest";
+    const state = room.getPlayerState(playerId);
+    if (!state) return res.status(403).json({ error: 'Player not in room' });
 
-            for (const [roomId, room] of Object.entries(rooms)) {
-                const p = room.players.find(p => p.id === s.id);
-                if (p) {
-                    playerRoom = roomId;
-                    playerName = p.name;
-                    break;
-                }
-            }
+    res.json(state);
+});
 
-            allSockets.push({
-                id: s.id,
-                name: playerName,
-                room: playerRoom,
-                connected: s.connected
-            });
-        });
-        socket.emit('admin_player_list', allSockets);
-    });
+// Start Game (Admin)
+app.post('/api/rooms/:roomId/start', (req, res) => {
+    const { roomId } = req.params;
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    socket.on('admin_kick_player', (targetSocketId) => {
-        const targetSocket = io.sockets.sockets.get(targetSocketId);
-        if (targetSocket) {
-            targetSocket.emit('kicked', 'You have been kicked by the administrator.');
-            targetSocket.disconnect(true);
-            console.log(`Admin kicked player ${targetSocketId}`);
-        }
+    // Auth check: Is it admin?
+    // Simplified: Any player in the room implies "someone in the room triggered it"
+    // Better: Check player ID from header if it is admin
+    const playerId = req.headers['x-player-id'];
+    const player = room.players.find(p => p.id === playerId);
+
+    if (!player || !player.isAdmin) {
+        return res.status(403).json({ error: 'Only Admin can start' });
+    }
+
+    room.startGame();
+    res.json({ success: true });
+});
+
+// Bid
+app.post('/api/rooms/:roomId/bid', (req, res) => {
+    const { roomId } = req.params;
+    const { amount } = req.body;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.bid(playerId, amount);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
+// Exchange
+app.post('/api/rooms/:roomId/exchange', (req, res) => {
+    const { roomId } = req.params;
+    const { cards } = req.body;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.exchangeCards(playerId, cards);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
+// Select Trump
+app.post('/api/rooms/:roomId/trump', (req, res) => {
+    const { roomId } = req.params;
+    const { suit } = req.body;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.selectTrump(playerId, suit);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
+// Play Card
+app.post('/api/rooms/:roomId/play', (req, res) => {
+    const { roomId } = req.params;
+    const { card } = req.body;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.playCard(playerId, card);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
+
+// Debug Endpoint
+app.get('/api/debug/:roomId', (req, res) => {
+    const { roomId } = req.params;
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+    res.json({
+        ...room,
+        players: room.players,
+        hands: room.hands,
+        deck: 'hidden'
     });
 });
 
-server.listen(PORT, () => {
+// Force End Round
+app.post('/api/debug/:roomId/end-round', (req, res) => {
+    const { roomId } = req.params;
+    const room = rooms[roomId];
+    if (room) {
+        room.endRound();
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Room not found' });
+    }
+});
+
+// Set Scores
+app.post('/api/debug/:roomId/set-scores', (req, res) => {
+    const { roomId } = req.params;
+    const { scores } = req.body;
+    const room = rooms[roomId];
+    if (room) {
+        room.scores = scores;
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Room not found' });
+    }
+});
+
+app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
