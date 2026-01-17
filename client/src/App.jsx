@@ -91,6 +91,7 @@ function App() {
 
     const { playSound } = useSound();
     const prevRoomState = useRef(null);
+    const roundEndSoundPlayed = useRef(false);
 
     useEffect(() => {
         if (!roomState) {
@@ -115,14 +116,30 @@ function App() {
             }
         }
 
-        // 3. Trick End Logic (Win vs Shame)
+        // 3. Trick Win Sound (Trick cleared)
         if (prev && prev.currentTrick?.length > 0 && (!roomState.currentTrick || roomState.currentTrick.length === 0)) {
-            // Trick just cleared. The NEW currentTurn is the winner of the trick (usually).
-            // We should check if I am the winner.
+            // Trick just cleared. The NEW currentTurn is the winner of the trick
             if (roomState.currentTurn === myPlayerId) {
                 playSound('win');
+            }
+            // No sound for losing a single trick (Shame is only for round end 0 tricks)
+        }
+
+        // 4. Round End Shame Sound (0 Tricks at end of round)
+        if (roomState.roundScores) {
+            const totalTricks = Object.values(roomState.roundScores).reduce((a, b) => a + b, 0);
+
+            if (totalTricks === 12) {
+                if (!roundEndSoundPlayed.current) {
+                    const myTricks = roomState.roundScores[myPlayerId] || 0;
+                    if (myTricks === 0) {
+                        playSound('shame');
+                    }
+                    roundEndSoundPlayed.current = true;
+                }
             } else {
-                playSound('shame');
+                // Reset flag when new round starts (tricks < 12)
+                roundEndSoundPlayed.current = false;
             }
         }
 
