@@ -429,16 +429,24 @@ class Room {
 
         for (let i = 1; i < 4; i++) {
             const pCard = this.currentTrick[i].card;
-            if (pCard.suit === leadSuit) {
-                if (getRankVal(pCard.rank) > getRankVal(highestCard.rank)) {
-                    highestCard = pCard;
-                    winnerIndex = i;
-                }
-            } else if (pCard.suit === this.trump) {
+
+            if (pCard.suit === this.trump) {
+                // If new card is Trump
                 if (highestCard.suit !== this.trump) {
+                    // Previous winner wasn't trump, so this wins
                     highestCard = pCard;
                     winnerIndex = i;
                 } else {
+                    // Both trumps, higher rank wins
+                    if (getRankVal(pCard.rank) > getRankVal(highestCard.rank)) {
+                        highestCard = pCard;
+                        winnerIndex = i;
+                    }
+                }
+            } else if (pCard.suit === leadSuit) {
+                // If new card is Lead Suit (and NOT Trump)
+                // It can only win if the current highest is ALSO not a Trump
+                if (highestCard.suit !== this.trump) {
                     if (getRankVal(pCard.rank) > getRankVal(highestCard.rank)) {
                         highestCard = pCard;
                         winnerIndex = i;
