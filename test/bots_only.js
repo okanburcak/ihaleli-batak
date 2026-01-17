@@ -60,6 +60,12 @@ class Bot {
                 console.log(`${this.name} bids 0`);
             }
 
+            // Should I select Trump?
+            if (res.state === 'TRUMP_SELECTION' && res.winningBid.playerId === this.id) {
+                console.log(`${this.name} selects trump ♠`);
+                await apiCall('POST', `/api/rooms/${roomId}/trump`, { suit: '♠' }, { 'x-player-id': this.token });
+            }
+
             // Should I exchange?
             if (res.state === 'EXCHANGE_CARDS' && res.winningBid.playerId === this.id) {
                 // Bury first 4
@@ -76,12 +82,6 @@ class Bot {
                     const toBury = this.hand.slice(0, 4);
                     await apiCall('POST', `/api/rooms/${roomId}/exchange`, { cards: toBury }, { 'x-player-id': this.token });
                 }
-            }
-
-            // Should I select Trump?
-            if (res.state === 'TRUMP_SELECTION' && res.winningBid.playerId === this.id) {
-                console.log(`${this.name} selects trump ♠`);
-                await apiCall('POST', `/api/rooms/${roomId}/trump`, { suit: '♠' }, { 'x-player-id': this.token });
             }
 
             // Should I play?

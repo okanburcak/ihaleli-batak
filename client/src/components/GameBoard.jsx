@@ -5,7 +5,7 @@ import Card from './Card';
 const GameBoard = ({ roomState, myPlayerId }) => {
     if (!roomState) return <div>Yükleniyor...</div>;
 
-    const { players, currentTrick, trump, roundScores, scores, winningBid } = roomState;
+    const { players, currentTrick, trump, roundScores, scores, winningBid, bids, state, currentTurn } = roomState;
 
     // Find my position index
     const myIndex = players.findIndex(p => p.id === myPlayerId);
@@ -19,9 +19,46 @@ const GameBoard = ({ roomState, myPlayerId }) => {
         players[(myIndex + 3) % 4]
     ];
 
-    const getPlayerCardInTrick = (pId) => {
-        const play = currentTrick.find(p => p.playerId === pId);
-        return play ? play.card : null;
+
+
+    const isTurn = (pId) => currentTurn === pId;
+
+    const getBidDisplay = (pId) => {
+        if (state !== 'BIDDING') return null;
+        if (!bids || bids[pId] === undefined) return null;
+        return bids[pId] === 0 ? 'PAS' : bids[pId];
+    };
+
+    const PlayerAvatar = ({ player }) => {
+        if (!player) return <div className="text-white/50 text-xs">Bekliyor</div>;
+        const bid = getBidDisplay(player.id);
+        const isActive = isTurn(player.id);
+
+        return (
+            <div className="flex flex-col items-center relative">
+                <div className={`
+                    w-8 h-8 md:w-16 md:h-16 rounded-full mb-1 border-2 transition-all duration-300
+                    ${isActive ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.8)] scale-110' : 'border-white'}
+                    bg-gray-300 overflow-hidden
+                `}>
+                    {/* Placeholder Avatar Image or Initials */}
+                    <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white font-bold text-xs md:text-xl">
+                        {player.name.charAt(0)}
+                    </div>
+                </div>
+
+                <div className={`px-2 rounded text-xs md:text-sm font-bold transition-colors ${isActive ? 'bg-yellow-500 text-black' : 'bg-black/50 text-white'}`}>
+                    {player.name}
+                </div>
+
+                {/* Bid Badge */}
+                {bid !== null && (
+                    <div className="absolute -top-2 -right-2 md:-top-0 md:-right-6 bg-blue-600 text-white text-[10px] md:text-xs px-1.5 py-0.5 rounded-full border border-blue-400 shadow-md animate-bounce">
+                        {bid}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -43,8 +80,7 @@ const GameBoard = ({ roomState, myPlayerId }) => {
 
             {/* TOP PLAYER */}
             <div className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-gray-300 rounded-full mb-1 border-2 border-white"></div>
-                <div className="text-white text-xs md:text-sm font-bold bg-black/50 px-2 rounded mb-1">{orderedPlayers[2]?.name || 'Bekliyor'}</div>
+                <PlayerAvatar player={orderedPlayers[2]} />
                 {/* Card Slot */}
                 <div className="mt-1 md:mt-4">
                     <Card card={getPlayerCardInTrick(orderedPlayers[2]?.id)} showGomu={myPlayerId === winningBid.playerId} />
@@ -53,9 +89,8 @@ const GameBoard = ({ roomState, myPlayerId }) => {
 
             {/* LEFT PLAYER (Position 3) */}
             <div className="absolute left-2 md:left-8 top-1/2 transform -translate-y-1/2 flex flex-row items-center">
-                <div className="flex flex-col items-center mr-2 md:mr-4">
-                    <div className="w-8 h-8 md:w-12 md:h-12 bg-gray-300 rounded-full mb-1 border-2 border-white"></div>
-                    <div className="text-white text-xs md:text-sm font-bold bg-black/50 px-2 rounded">{orderedPlayers[3]?.name || 'Bekliyor'}</div>
+                <div className="mr-2 md:mr-4">
+                    <PlayerAvatar player={orderedPlayers[3]} />
                 </div>
                 {/* Card Slot */}
                 <div>
@@ -65,9 +100,8 @@ const GameBoard = ({ roomState, myPlayerId }) => {
 
             {/* RIGHT PLAYER (Position 1) */}
             <div className="absolute right-2 md:right-8 top-1/2 transform -translate-y-1/2 flex flex-row-reverse items-center">
-                <div className="flex flex-col items-center ml-2 md:ml-4">
-                    <div className="w-8 h-8 md:w-12 md:h-12 bg-gray-300 rounded-full mb-1 border-2 border-white"></div>
-                    <div className="text-white text-xs md:text-sm font-bold bg-black/50 px-2 rounded">{orderedPlayers[1]?.name || 'Bekliyor'}</div>
+                <div className="ml-2 md:ml-4">
+                    <PlayerAvatar player={orderedPlayers[1]} />
                 </div>
                 {/* Card Slot */}
                 <div>

@@ -1,8 +1,8 @@
 import React from 'react';
 
 const SuitIcon = ({ suit }) => {
-    const color = (suit === '♥' || suit === '♦') ? 'text-red-500' : 'text-black';
-    return <span className={`${color} text-xl md:text-2xl`}>{suit}</span>;
+    const color = (suit === '♥' || suit === '♦') ? 'text-red-600' : 'text-black';
+    return <span className={`${color} text-3xl md:text-5xl`}>{suit}</span>;
 };
 
 const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = false }) => {
@@ -22,7 +22,7 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
             onClick={() => isPlayable ? onClick(card) : null}
             className={`
                 w-14 h-20 md:w-20 md:h-28 bg-white rounded-lg shadow-lg flex flex-col items-center justify-between p-1 md:p-2 
-                cursor-pointer transition-transform transform 
+                cursor-pointer transition-transform transform relative overflow-hidden
                 ${isPlayable ? 'hover:-translate-y-4 hover:shadow-xl' : ''}
                 ${isPlayed ? 'z-0' : 'hover:z-10'}
             `}

@@ -321,6 +321,9 @@ function App() {
                                     </div>
                                     {p.id === myPlayerId && <span className="text-xs bg-yellow-500 text-black px-1 rounded">SEN</span>}
                                     {p.isAdmin && <span className="text-xs bg-red-600 text-white px-1 rounded ml-2">YÖNETİCİ</span>}
+                                    {roomState.players[0]?.id === myPlayerId && (
+                                        <span className="text-xs ml-2 font-mono text-gray-300">[{roomState.seatCodes[idx]}]</span>
+                                    )}
                                 </li>
                             );
                         })}

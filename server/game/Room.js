@@ -197,7 +197,9 @@ class Room {
             trump: this.trump,
             currentTrick: this.currentTrick,
             roundScores: this.roundScores,
-            scores: this.scores
+            scores: this.scores,
+            bids: this.bids,
+            activeBidders: this.activeBidders
         };
     }
 
@@ -279,7 +281,7 @@ class Room {
         const activeCount = this.activeBidders.length;
         if (activeCount === 0 || (activeCount === 1 && this.activeBidders[0] === this.winningBid.playerId)) {
             // Bidding Over
-            this.state = 'EXCHANGE_CARDS';
+            this.state = 'TRUMP_SELECTION';
             // Winner starts the game
             const winnerId = this.winningBid.playerId;
             const winnerSeat = this.seats.findIndex(p => p?.id === winnerId);
@@ -312,7 +314,7 @@ class Room {
         this.hands[pIndex] = [...currentHand, ...markedKitty];
         this.deck.sortHand(this.hands[pIndex]); // Sort helper
 
-        this.state = 'TRUMP_SELECTION';
+        this.state = 'PLAYING';
         return { success: true };
     }
 
@@ -321,7 +323,7 @@ class Room {
         if (playerId !== this.winningBid.playerId) return { error: 'Not your turn' };
 
         this.trump = suit;
-        this.state = 'PLAYING';
+        this.state = 'EXCHANGE_CARDS';
         this.currentTrick = [];
 
         // Turn stays with bidder
@@ -477,7 +479,7 @@ class Room {
 
             // Check Round End
             const totalTricks = Object.values(this.roundScores).reduce((a, b) => a + b, 0);
-            if (totalTricks === 13) { // 13 tricks in 52 card deck
+            if (totalTricks === 12) { // 12 tricks (48 cards played)
                 this.endRound();
             }
         }, 2000);

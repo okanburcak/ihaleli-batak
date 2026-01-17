@@ -170,6 +170,11 @@ async function runSimulation() {
             }
         }
 
+        else if (state.state === 'TRUMP_SELECTION') {
+            // Pick Spades always
+            await currentBot.selectTrump(roomId, '♠');
+        }
+
         else if (state.state === 'EXCHANGE_CARDS') {
             // Winner needs to bury 4 cards.
             // Just pick first 4 cards not being top trumps?
@@ -178,11 +183,6 @@ async function runSimulation() {
                 const toBury = currentBot.hand.slice(0, 4);
                 await currentBot.exchange(roomId, toBury);
             }
-        }
-
-        else if (state.state === 'TRUMP_SELECTION') {
-            // Pick Spades always
-            await currentBot.selectTrump(roomId, '♠');
         }
 
         else if (state.state === 'PLAYING') {
