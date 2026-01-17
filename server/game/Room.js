@@ -24,7 +24,6 @@ class Room {
 
         // Trick State
         this.currentTrick = []; // [{playerId, card}, ...]
-        this.previousTricks = []; // Array of completed tricks
         this.turnIndex = 0; // 0-3, relative to seat index
         this.trickStarterIndex = 0;
 
@@ -200,9 +199,8 @@ class Room {
             roundScores: this.roundScores,
             scores: this.scores,
             bids: this.bids,
-            bids: this.bids,
+
             activeBidders: this.activeBidders,
-            previousTricks: this.previousTricks,
             pendingStateChange: this.pendingStateChange // Helpful for client to know if trick is resolving
         };
     }
@@ -216,7 +214,6 @@ class Room {
         this.hands = hands;
         this.kitty = kitty;
         this.buriedCards = [];
-        this.previousTricks = [];
 
         this.roundScores = {};
         this.seats.forEach(p => {
@@ -481,15 +478,6 @@ class Room {
         // Effectively freezing the game state for 2 seconds.
 
         this.pendingStateChange = Date.now() + 2000;
-
-
-
-        // Store history
-        this.previousTricks.push({
-            cards: [...this.currentTrick],
-            winnerId: winnerId,
-            winnerName: this.players.find(p => p.id === winnerId)?.name || 'Unknown'
-        });
 
         setTimeout(() => {
             this.currentTrick = [];
