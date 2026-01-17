@@ -21,6 +21,11 @@ const GameBoard = ({ roomState, myPlayerId }) => {
 
 
 
+    const getPlayerCardInTrick = (pId) => {
+        const play = currentTrick.find(p => p.playerId === pId);
+        return play ? play.card : null;
+    };
+
     const isTurn = (pId) => currentTurn === pId;
 
     const getBidDisplay = (pId) => {
