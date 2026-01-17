@@ -132,6 +132,8 @@ function App() {
     // Hurry Timer Effect
     useEffect(() => {
         if (!roomState || !roomState.currentTurn) return;
+        // Don't play in Lobby or Game Over
+        if (roomState.state === 'WAITING' || roomState.state === 'GAME_OVER') return;
 
         // Timer to play hurry sound if turn takes > 5s
         const timer = setTimeout(() => {
@@ -139,7 +141,7 @@ function App() {
         }, 5000);
 
         return () => clearTimeout(timer);
-    }, [roomState?.currentTurn, playSound]);
+    }, [roomState?.currentTurn, roomState?.state, playSound]);
 
     useEffect(() => {
         // Check for existing session
