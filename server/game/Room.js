@@ -451,7 +451,7 @@ class Room {
             if (card.suit !== leadSuit) return false;
             // Must raise?
             const isTrumped = currentTrick.some(m => m.card.suit === trumpSuit);
-            if (!isTrumped) {
+            if (!isTrumped || leadSuit === trumpSuit) {
                 let maxTableVal = 0;
                 currentTrick.forEach(m => {
                     if (m.card.suit === leadSuit) maxTableVal = Math.max(maxTableVal, getVal(m.card));
