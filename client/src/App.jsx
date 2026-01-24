@@ -171,41 +171,67 @@ function App() {
         return () => clearTimeout(timer);
     }, [roomState?.currentTurn, roomState?.state, playSound]);
 
+    const [currentRoomId, setCurrentRoomId] = useState(null);
+
+    // ... (SoundContext and refs remain)
+
+    // Helper: Initial Load from Storage
     useEffect(() => {
         // Check for existing session
-        const storedId = getPlayerId();
-        if (storedId) {
-            setMyPlayerId(storedId);
-            // Try to fetch state to see if valid?
-            api.getState('room1').then(res => {
+        const storedPlayerId = getPlayerId();
+        const storedRoomId = localStorage.getItem('batak_room_id');
+
+        if (storedPlayerId && storedRoomId) {
+            setMyPlayerId(storedPlayerId);
+            setCurrentRoomId(storedRoomId);
+
+            // Try to resume
+            api.getState(storedRoomId).then(res => {
                 if (res.error) {
-                    console.error("Session invalid");
+                    console.error("Session invalid or room gone");
+                    // If room is 404, detailed error needed?
+                    // Just reset if it fails hard
+                    setIsJoined(false);
+                    setCurrentRoomId(null);
+                    localStorage.removeItem('batak_room_id');
+                    setView('LANDING');
                 } else {
                     setIsJoined(true);
                     updateState(res);
+                    setView('GAME');
                 }
-            }).catch(() => { });
+            }).catch(() => {
+                // Network error etc
+                setIsJoined(false);
+                setCurrentRoomId(null);
+                localStorage.removeItem('batak_room_id');
+                setView('LANDING');
+            });
         }
     }, []);
 
+    // Polling
     useEffect(() => {
         let interval;
-        if (isJoined) {
+        if (isJoined && currentRoomId) {
             fetchState();
             interval = setInterval(fetchState, POLLING_RATE);
         }
         return () => clearInterval(interval);
-    }, [isJoined]);
+    }, [isJoined, currentRoomId]);
 
     const fetchState = async () => {
+        if (!currentRoomId) return;
         try {
-            const data = await api.getState('room1');
+            const data = await api.getState(currentRoomId);
             if (data.error) {
-                // Maybe kicked?
-                if (data.error === 'Player not in room') {
-                    alert('You are not in the room.');
+                if (data.error === 'Player not in room' || data.error === 'Room not found') {
+                    alert('Odadan atıldınız veya oda kapandı.');
                     setIsJoined(false);
                     setRoomState(null);
+                    setCurrentRoomId(null);
+                    localStorage.removeItem('batak_room_id');
+                    setView('LANDING');
                 }
             } else {
                 updateState(data);
@@ -219,7 +245,6 @@ function App() {
         setRoomState(data);
         if (data.myHand) setMyHand(data.myHand);
 
-        // My Turn Logic
         if (data.currentTurn === myPlayerId || (data.me && data.currentTurn === data.me.id)) {
             setIsMyTurn(true);
         } else {
@@ -227,12 +252,10 @@ function App() {
         }
 
         if (data.me) {
-            setMyPlayerId(data.me.id); // Ensure ID sync
-            // Ensure stored ID matches
+            setMyPlayerId(data.me.id);
             if (data.me.id !== getPlayerId()) setPlayerId(data.me.id);
         }
 
-        // Bid Turn Logic
         if (data.state === 'BIDDING' && data.currentTurn === data.me?.id) {
             setBidTurn({
                 playerId: data.me.id,
@@ -243,30 +266,11 @@ function App() {
         }
     };
 
-    const joinGame = async () => {
-        playSound('click');
-        if (!playerName.trim()) {
-            alert("Lütfen bir isim girin!");
-            return;
-        }
-        try {
-            const res = await api.joinRoom('room1', playerName, joinCode);
-            if (res.success) {
-                setPlayerId(res.token);
-                setMyPlayerId(res.token);
-                setIsJoined(true);
-                fetchState(); // Immediate fetch
-            } else {
-                alert(res.message);
-            }
-        } catch (e) {
-            alert("Error joining room");
-        }
-    };
+    // Removed unused joinGame function that hardcoded 'room1'
 
     const sendBid = async (amount) => {
         playSound('click');
-        const res = await api.bid('room1', amount);
+        const res = await api.bid(currentRoomId, amount);
         if (res.error) {
             setErrorMsg(res.error);
             setTimeout(() => setErrorMsg(''), 3000);
@@ -277,15 +281,14 @@ function App() {
 
     const selectTrump = async (suit) => {
         playSound('click');
-        const res = await api.selectTrump('room1', suit);
+        const res = await api.selectTrump(currentRoomId, suit);
         if (res.error) setErrorMsg(res.error);
         else fetchState();
     }
 
     const playCard = async (card) => {
         if (!isMyTurn) return;
-        // Optimistic UI update could happen here
-        const res = await api.playCard('room1', card);
+        const res = await api.playCard(currentRoomId, card);
         if (res.error) {
             setErrorMsg(res.error);
             setTimeout(() => setErrorMsg(''), 3000);
@@ -301,7 +304,7 @@ function App() {
             if (isSelected) {
                 return prev.filter(c => !(c.suit === card.suit && c.rank === card.rank));
             } else {
-                if (prev.length >= 4) return prev; // Max 4
+                if (prev.length >= 4) return prev;
                 return [...prev, card];
             }
         });
@@ -310,7 +313,7 @@ function App() {
     const submitExchange = async () => {
         playSound('click');
         if (selectedForBury.length !== 4) return;
-        const res = await api.exchangeCards('room1', selectedForBury);
+        const res = await api.exchangeCards(currentRoomId, selectedForBury);
         if (res.error) setErrorMsg(res.error);
         else {
             setSelectedForBury([]);
@@ -320,13 +323,11 @@ function App() {
 
     const startGame = async () => {
         playSound('click');
-        await api.startGame('room1');
+        await api.startGame(currentRoomId);
         fetchState();
     }
 
-    if (showSuperAdmin) {
-        return <AdminDashboard onClose={() => setShowSuperAdmin(false)} />;
-    }
+    // ... (AdminDashboard render and usage of showSuperAdmin)
 
     // Poll Lobby
     useEffect(() => {
@@ -358,7 +359,7 @@ function App() {
         try {
             const res = await api.createRoom();
             if (res.roomId) {
-                joinRoom(res.roomId, 0); // Creator is admin, seat 0
+                joinRoom(res.roomId, 0);
             }
         } catch (e) {
             console.error(e);
@@ -369,15 +370,16 @@ function App() {
     const joinRoom = async (targetRoomId, seatIdx) => {
         playSound('click');
         try {
-            // If seatIdx is passed, use it.
-            // If not (e.g. from code input), it will be undefined and server handles it.
             const res = await api.joinRoom(targetRoomId, playerName, joinCode, seatIdx);
             if (res.success) {
                 setPlayerId(res.token);
                 setMyPlayerId(res.token);
+                setCurrentRoomId(targetRoomId);
+                localStorage.setItem('batak_room_id', targetRoomId);
+
                 setIsJoined(true);
-                fetchState(); // Immediate fetch
-                setView('GAME'); // Implied by isJoined but good for clarity
+                fetchState();
+                setView('GAME');
             } else {
                 alert(res.message);
             }
