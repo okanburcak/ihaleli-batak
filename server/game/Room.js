@@ -71,10 +71,13 @@ class Room {
             return { success: true, token, playerId: token, message: 'Room created. You are Admin.' };
         }
 
-        // 2. Validate Seat
+        // 2. Validate Seat (or Spectator)
         let seatToJoin = -1;
+        let isSpectator = false;
 
-        if (targetSeatIndex !== -1) {
+        if (targetSeatIndex === -2) {
+            isSpectator = true;
+        } else if (targetSeatIndex !== -1) {
             // Explicit seat request
             if (targetSeatIndex < 0 || targetSeatIndex > 3) return { success: false, message: 'Invalid seat.' };
             seatToJoin = targetSeatIndex;
@@ -85,6 +88,23 @@ class Room {
         }
 
         // 3. Join or Reconnect
+        // If Spectator, we just add them to players list.
+        if (isSpectator) {
+            const token = crypto.randomUUID();
+            const newPlayer = {
+                id: token,
+                token: token,
+                name: name || `Izleyici`,
+                seatIndex: -1, // -1 or -2 to indicate spectator
+                isAdmin: false,
+                connected: true,
+                lastSeen: Date.now(),
+                isSpectator: true
+            };
+            this.players.push(newPlayer);
+            return { success: true, token, playerId: token, message: 'Joined as Spectator.' };
+        }
+
         const existingPlayer = this.seats[seatToJoin];
 
         if (existingPlayer) {
@@ -325,6 +345,15 @@ class Room {
     exchangeCards(playerId, cardsToBury) {
         if (this.state !== 'EXCHANGE_CARDS') return { error: 'Wrong phase' };
         if (playerId !== this.winningBid.playerId) return { error: 'Not your bid' };
+
+        // Support for Gömü Skip (Pas)
+        if (!cardsToBury || cardsToBury.length === 0) {
+            // Player chose not to take the kitty.
+            // Kitty remains unused.
+            this.state = 'PLAYING';
+            return { success: true, message: 'Gömü skipped' };
+        }
+
         if (cardsToBury.length !== 4) return { error: 'Must bury 4 cards' };
 
         const pIndex = this.seats.findIndex(p => p?.id === playerId);

@@ -10,14 +10,29 @@ const GameBoard = ({ roomState, myPlayerId }) => {
     // Find my position index
     const myIndex = players.findIndex(p => p.id === myPlayerId);
 
-    // Calculate relative positions for display [Bottom (Me), Left, Top, Right]
-    // orderedPlayers[0] = Me, orderedPlayers[1] = Next...
-    const orderedPlayers = [
-        players[myIndex],
-        players[(myIndex + 1) % 4],
-        players[(myIndex + 2) % 4],
-        players[(myIndex + 3) % 4]
-    ];
+    // If spectator (myIndex === -1 or seatIndex === -1), show static view (Seat 0 at bottom)
+    // Actually, players array in roomState might NOT be sorted by seat.
+    // roomState.players is from `seats` mapping in server: `seats.map(...)`.
+    // So players[0] IS Seat 0.
+
+    let orderedPlayers = [];
+    if (myIndex === -1 || players[myIndex].seatIndex === -1) {
+        // SPECTATOR VIEW: Fixed rotation
+        orderedPlayers = [
+            players[0],
+            players[1],
+            players[2],
+            players[3]
+        ];
+    } else {
+        // PLAYER VIEW: Rotate so I am at bottom
+        orderedPlayers = [
+            players[myIndex],
+            players[(myIndex + 1) % 4],
+            players[(myIndex + 2) % 4],
+            players[(myIndex + 3) % 4]
+        ];
+    }
 
 
 

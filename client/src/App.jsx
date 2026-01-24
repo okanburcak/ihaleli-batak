@@ -502,8 +502,14 @@ function App() {
                                         })}
                                     </div>
 
-                                    <div className="p-3 bg-black/20 text-center text-xs text-gray-400">
-                                        {room.playerCount}/4 Oyuncu
+                                    <div className="flex justify-between items-center p-3 bg-black/20 text-xs text-gray-400">
+                                        <span>{room.playerCount}/4 Oyuncu</span>
+                                        <button
+                                            onClick={() => joinRoom(room.id, -2)}
+                                            className="text-yellow-500 hover:text-white underline"
+                                        >
+                                            Yancı Ol (İzle)
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -599,7 +605,7 @@ function App() {
 
             {/* Admin Panel */}
             {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
-            
+
             {/* Super Admin Dashboard */}
             {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}
 
@@ -664,6 +670,17 @@ function App() {
                             className={`w-full py-4 rounded-xl font-bold text-lg md:text-xl shadow-xl ${selectedForBury.length === 4 ? 'bg-green-600 hover:bg-green-500 text-white animate-pulse' : 'bg-gray-700 text-gray-500 cursor-not-allowed'}`}
                         >
                             ONAYLA VE GÖM
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm('Gömüyü almadan oynamak istediğinize emin misiniz? (Pas Geç)')) {
+                                    api.exchangeCards(currentRoomId, []); // Send empty array to skip
+                                    fetchState();
+                                }
+                            }}
+                            className="w-full py-4 mt-2 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold text-lg md:text-xl shadow-xl"
+                        >
+                            PAS GEÇ (GÖMÜYÜ ALMA)
                         </button>
                     </div>
 
