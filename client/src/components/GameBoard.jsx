@@ -95,14 +95,22 @@ const GameBoard = ({ roomState, myPlayerId }) => {
                 </div>
 
                 {/* Info Panel: Trump & Bid - Floats Top Left */}
-                <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/80 text-yellow-500 p-3 rounded-xl border border-yellow-600 shadow-xl backdrop-blur-sm transform -rotate-6">
-                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400">KOZ</div>
+                <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/80 text-yellow-500 p-3 rounded-xl border border-yellow-600 shadow-xl backdrop-blur-sm transform -rotate-6 min-w-[100px]">
+                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">KOZ</div>
                     <div className="text-3xl md:text-4xl leading-none mb-1 text-center">{trump || '?'}</div>
                     <div className="h-px bg-stone-600 my-1"></div>
-                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400">İHALE</div>
-                    <div className="text-lg md:text-xl text-white text-center">
+                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">İHALE</div>
+                    <div className="text-lg md:text-xl text-white text-center font-bold">
                         {winningBid.amount > 0 ? winningBid.amount : '-'}
                     </div>
+                    {winningBid.playerId && (
+                        <>
+                            <div className="h-px bg-stone-600 my-1"></div>
+                            <div className="text-xs text-yellow-300 text-center font-bold truncate max-w-[80px] mx-auto">
+                                {players.find(p => p.id === winningBid.playerId)?.name || ''}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Scoreboard - Floats Top Right */}
