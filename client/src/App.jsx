@@ -599,6 +599,9 @@ function App() {
 
             {/* Admin Panel */}
             {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+            
+            {/* Super Admin Dashboard */}
+            {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}
 
             {/* Error Toast */}
             {errorMsg && (
