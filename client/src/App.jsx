@@ -127,7 +127,7 @@ function App() {
                     <div
                         key={rowIdx}
                         className={`
-                            flex items-end justify-center transition-transform duration-300 pointer-events-auto gap-2
+                            flex items-end justify-center transition-transform duration-300 pointer-events-auto
                             ${rowIdx === 0 && rows.length > 1 ? '-mb-12 scale-90 opacity-90 z-10' : 'z-20'}
                         `}
                     >
@@ -136,6 +136,7 @@ function App() {
                                 key={`${card.suit}-${card.rank}-${idx}`}
                                 className={`
                                     transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
+                                    ${idx !== 0 ? '-ml-4 lg:-ml-8' : ''}
                                 `}
                                 style={{
                                     zIndex: idx + (rowIdx * 20)
