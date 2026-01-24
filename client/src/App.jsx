@@ -4,6 +4,7 @@ import { useSound } from './contexts/SoundContext'
 import GameBoard from './components/GameBoard'
 import Card from './components/Card'
 import AdminPanel from './components/AdminPanel'
+import AdminDashboard from './components/AdminDashboard'
 
 function App() {
     const [roomState, setRoomState] = useState(null);
@@ -86,12 +87,22 @@ function App() {
     const [playerName, setPlayerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [myPlayerId, setMyPlayerId] = useState(null);
+    const [view, setView] = useState('LANDING'); // LANDING, LOBBY
+    const [lobbyRooms, setLobbyRooms] = useState([]);
 
     const POLLING_RATE = 1000;
 
     const { playSound } = useSound();
     const prevRoomState = useRef(null);
     const roundEndSoundPlayed = useRef(false);
+    const [showSuperAdmin, setShowSuperAdmin] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+            setShowSuperAdmin(true);
+        }
+    }, []);
 
     useEffect(() => {
         if (!roomState) {
@@ -313,62 +324,176 @@ function App() {
         fetchState();
     }
 
+    if (showSuperAdmin) {
+        return <AdminDashboard onClose={() => setShowSuperAdmin(false)} />;
+    }
+
+    // Poll Lobby
+    useEffect(() => {
+        let interval;
+        if (view === 'LOBBY' && !isJoined) {
+            const fetchRooms = async () => {
+                try {
+                    const rooms = await api.getRooms();
+                    setLobbyRooms(rooms);
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+            fetchRooms();
+            interval = setInterval(fetchRooms, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [view, isJoined]);
+
+    const enterLobby = () => {
+        if (!playerName.trim()) {
+            alert("Lütfen isminizi giriniz.");
+            return;
+        }
+        setView('LOBBY');
+    };
+
+    const createTable = async () => {
+        try {
+            const res = await api.createRoom();
+            if (res.roomId) {
+                joinRoom(res.roomId, 0); // Creator is admin, seat 0
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Oda oluşturulamadı.");
+        }
+    };
+
+    const joinRoom = async (targetRoomId, seatIdx) => {
+        playSound('click');
+        try {
+            // If seatIdx is passed, use it.
+            // If not (e.g. from code input), it will be undefined and server handles it.
+            const res = await api.joinRoom(targetRoomId, playerName, joinCode, seatIdx);
+            if (res.success) {
+                setPlayerId(res.token);
+                setMyPlayerId(res.token);
+                setIsJoined(true);
+                fetchState(); // Immediate fetch
+                setView('GAME'); // Implied by isJoined but good for clarity
+            } else {
+                alert(res.message);
+            }
+        } catch (e) {
+            alert("Error joining room");
+        }
+    };
+
     if (!isJoined) {
-        return (
-            <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white">
-                <h1 className="text-4xl font-bold mb-8">İhaleli Batak</h1>
-                <div className="flex flex-col gap-6 w-full max-w-sm">
-                    {/* Name Input */}
-                    <div className="relative group">
-                        <input
-                            id="playerName"
-                            className="peer w-full px-4 py-3 rounded-xl bg-green-800/50 border-2 border-green-600 text-white font-bold outline-none focus:border-yellow-400 focus:bg-green-800/80 transition-all shadow-lg placeholder-transparent"
-                            value={playerName}
-                            onChange={(e) => setPlayerName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && joinGame()}
-                            placeholder="Adınız"
-                        />
-                        <label
-                            htmlFor="playerName"
-                            className="absolute left-4 -top-2.5 bg-green-900 px-2 text-xs text-green-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-yellow-400 transition-all pointer-events-none"
-                        >
-                            Oyuncu Adı
-                        </label>
+        if (view === 'LANDING') {
+            return (
+                <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white font-sans">
+                    <div className="bg-green-800/80 p-8 rounded-2xl shadow-2xl border border-green-600 w-full max-w-md backdrop-blur-sm">
+                        <h1 className="text-4xl font-extrabold mb-8 text-center text-yellow-400 drop-shadow-md">İhaleli Batak</h1>
+                        <div className="flex flex-col gap-6">
+                            <div className="relative group">
+                                <input
+                                    id="playerName"
+                                    className="peer w-full px-4 py-4 rounded-xl bg-green-900/50 border-2 border-green-600 text-white font-bold outline-none focus:border-yellow-400 focus:bg-green-900/80 transition-all shadow-inner placeholder-transparent text-lg"
+                                    value={playerName}
+                                    onChange={(e) => setPlayerName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && enterLobby()}
+                                    placeholder="Adınız"
+                                />
+                                <label
+                                    htmlFor="playerName"
+                                    className="absolute left-4 -top-2.5 bg-green-800 px-2 text-sm text-green-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-4 peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-yellow-400 transition-all pointer-events-none rounded"
+                                >
+                                    Oyuncu Adı
+                                </label>
+                            </div>
+
+                            <button
+                                onClick={enterLobby}
+                                className="w-full py-4 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-extrabold text-xl rounded-xl shadow-lg transform transition-all active:scale-95"
+                            >
+                                MASALARI GÖR
+                            </button>
+                        </div>
                     </div>
-
-                    {/* Join Code Input */}
-                    <div className="relative group">
-                        <input
-                            id="joinCode"
-                            type="text"
-                            maxLength={4}
-                            className="peer w-full px-4 py-3 rounded-xl bg-green-800/50 border-2 border-green-600 text-white font-bold outline-none focus:border-yellow-400 focus:bg-green-800/80 transition-all shadow-lg uppercase tracking-widest placeholder-transparent"
-                            value={joinCode}
-                            onChange={(e) => setJoinCode(e.target.value)}
-                            placeholder="Oda Kodu"
-                        />
-                        <label
-                            htmlFor="joinCode"
-                            className="absolute left-4 -top-2.5 bg-green-900 px-2 text-xs text-green-300 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-3.5 peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-yellow-400 transition-all pointer-events-none"
-                        >
-                            Oda Kodu (İsteğe Bağlı)
-                        </label>
-                    </div>
-
-                    <button onClick={joinGame} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-extrabold text-lg rounded-xl shadow-xl transform transition-transform hover:scale-105 hover:from-yellow-400 hover:to-yellow-500 active:scale-95">
-                        ODAYA KATIL
-                    </button>
-
-                    <button
-                        onClick={() => setShowAdmin(true)}
-                        className="text-sm text-gray-400 hover:text-white underline mt-2 text-center"
-                    >
-                        Yönetici Paneli
-                    </button>
                 </div>
-                {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
-            </div>
-        )
+            );
+        }
+
+        if (view === 'LOBBY') {
+            return (
+                <div className="min-h-screen bg-stone-900 text-white p-4 md:p-8 font-sans">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex justify-between items-center mb-8 border-b border-stone-700 pb-4">
+                            <h2 className="text-3xl font-bold text-yellow-500">Oyun Lobisi</h2>
+                            <div className="flex gap-4 items-center">
+                                <span className="text-gray-400">Oyuncu: <b className="text-white">{playerName}</b></span>
+                                <button onClick={() => setView('LANDING')} className="text-sm underline text-stone-500 hover:text-white">Çıkış</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Create Room Card */}
+                            <div className="bg-stone-800/50 border-2 border-dashed border-stone-600 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:bg-stone-800 transition cursor-pointer group" onClick={createTable}>
+                                <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center text-stone-900 text-4xl font-bold shadow-lg group-hover:scale-110 transition">+</div>
+                                <span className="text-xl font-bold text-stone-400 group-hover:text-white">Yeni Masa Aç</span>
+                            </div>
+
+                            {/* Room List */}
+                            {lobbyRooms.map(room => (
+                                <div key={room.id} className="bg-green-800 rounded-xl overflow-hidden shadow-xl border border-green-700 flex flex-col">
+                                    <div className="bg-green-900/50 p-4 flex justify-between items-center">
+                                        <h3 className="font-bold text-lg">Masa #{room.id}</h3>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${room.state === 'WAITING' ? 'bg-green-500 text-black' : 'bg-red-500 text-white'}`}>
+                                            {room.state === 'WAITING' ? 'BEKLİYOR' : 'OYUNDA'}
+                                        </span>
+                                    </div>
+
+                                    {/* Chairs */}
+                                    <div className="p-6 grid grid-cols-2 gap-4 flex-grow">
+                                        {[0, 1, 2, 3].map(seatIdx => {
+                                            const seat = room.seats[seatIdx];
+                                            const isTaken = !!seat;
+                                            return (
+                                                <button
+                                                    key={seatIdx}
+                                                    disabled={isTaken}
+                                                    onClick={() => joinRoom(room.id, seatIdx)}
+                                                    className={`
+                                                        relative p-3 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square transition-all
+                                                        ${isTaken
+                                                            ? 'bg-green-900/40 border border-green-800'
+                                                            : 'bg-green-700/30 border border-green-500 hover:bg-green-600 hover:scale-105 cursor-pointer hover:shadow-lg group'
+                                                        }
+                                                    `}
+                                                >
+                                                    {/* Chair Icon */}
+                                                    <div className={`w-8 h-8 rounded-t-lg ${isTaken ? 'bg-gray-500' : 'bg-yellow-100 group-hover:bg-yellow-400'} transition-colors`}></div>
+                                                    <div className={`w-10 h-1 rounded-sm ${isTaken ? 'bg-gray-600' : 'bg-yellow-200 group-hover:bg-yellow-500'} transition-colors`}></div>
+
+                                                    {isTaken ? (
+                                                        <span className="text-xs text-gray-400 font-mono truncate w-full text-center">{seat.name}</span>
+                                                    ) : (
+                                                        <span className="text-xs text-green-300 font-bold group-hover:text-white">OTUR</span>
+                                                    )}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+
+                                    <div className="p-3 bg-black/20 text-center text-xs text-gray-400">
+                                        {room.playerCount}/4 Oyuncu
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        return null; // Should not happen given initial view is LANDING
     }
 
     if (roomState?.state === 'WAITING') {

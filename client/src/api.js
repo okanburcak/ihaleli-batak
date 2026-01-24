@@ -26,12 +26,25 @@ const getHeaders = () => {
 };
 
 export const api = {
-    joinRoom: async (roomId, name, code) => {
+    joinRoom: async (roomId, name, code, seatIndex) => {
         const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, code })
+            body: JSON.stringify({ name, code, seatIndex })
         });
+        return res.json();
+    },
+
+    createRoom: async () => {
+        const res = await fetch(`${BASE_URL}/api/rooms`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return res.json();
+    },
+
+    getRooms: async () => {
+        const res = await fetch(`${BASE_URL}/api/rooms`, { headers: getHeaders() });
         return res.json();
     },
 
@@ -83,6 +96,28 @@ export const api = {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ card })
+        });
+        return res.json();
+    },
+
+    // Admin API
+    adminListRooms: async () => {
+        const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getHeaders() });
+        return res.json();
+    },
+
+    adminResetRoom: async (roomId) => {
+        const res = await fetch(`${BASE_URL}/api/admin/rooms/${roomId}/reset`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return res.json();
+    },
+
+    adminDeleteRoom: async (roomId) => {
+        const res = await fetch(`${BASE_URL}/api/admin/rooms/${roomId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
         });
         return res.json();
     }

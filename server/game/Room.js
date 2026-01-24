@@ -48,8 +48,8 @@ class Room {
     }
 
     // Returns { success, token, playerId, message }
-    addPlayer(name, code) {
-        // 1. First Player -> Admin
+    addPlayer(name, code, targetSeatIndex = -1) {
+        // 1. First Player -> Admin (Create Room effectively)
         if (this.seats.every(s => s === null)) {
             const token = crypto.randomUUID();
             const player = {
@@ -75,28 +75,47 @@ class Room {
             return { success: true, token, playerId: token, message: 'Room created. You are Admin.' };
         }
 
-        // 2. Validate Code
-        let targetSeatIndex = -1;
-        for (const [seatIdx, roomCode] of Object.entries(this.seatCodes)) {
-            if (roomCode === code) {
-                targetSeatIndex = parseInt(seatIdx);
-                break;
-            }
-        }
+        // 2. Validate Seat / Code
+        // If targetSeatIndex is provided, we try to join that seat.
+        // If code is provided, we check if it matches ANY seat (existing logic).
 
-        if (targetSeatIndex === -1) {
-            // Check if it's admin reconnecting (no code for admin usually, but maybe they stored token?)
-            // If checking by code, and no code matches, fail.
-            return { success: false, message: 'Invalid code.' };
+        let seatToJoin = -1;
+
+        if (targetSeatIndex !== -1) {
+            // Explicit seat request (Public Join)
+            if (targetSeatIndex < 0 || targetSeatIndex > 3) return { success: false, message: 'Invalid seat.' };
+            seatToJoin = targetSeatIndex;
+        } else if (code) {
+            // Code based join (Private/Link logic)
+            for (const [seatIdx, roomCode] of Object.entries(this.seatCodes)) {
+                if (roomCode === code) {
+                    seatToJoin = parseInt(seatIdx);
+                    break;
+                }
+            }
+            if (seatToJoin === -1) return { success: false, message: 'Invalid code.' };
+        } else {
+            // No code, no seat -> Auto assign empty? Or fail?
+            // Let's auto-assign the first empty seat.
+            seatToJoin = this.seats.findIndex(s => s === null);
+            if (seatToJoin === -1) return { success: false, message: 'Room is full.' };
         }
 
         // 3. Join or Reconnect
-        const existingPlayer = this.seats[targetSeatIndex];
-        if (existingPlayer) {
-            // Reconnect? We need to return a NEW token or verify old one?
-            // In this simple model, if they provide the code, they "take over" the seat.
-            // We'll generate a new token and invalidate the old one (security tradeoff for simplicity).
+        const existingPlayer = this.seats[seatToJoin];
 
+        if (existingPlayer) {
+            // Reconnect Logic
+            // Only allow if Token matches? OR if using Code?
+            // If explicit seat join (public) and someone is there:
+            // - If connected: Fail "Seat taken".
+            // - If disconnected: Allow takeover?
+
+            if (existingPlayer.connected) {
+                return { success: false, message: 'Seat accepted and occupied.' };
+            }
+
+            // Allow takeover of disconnected player
             const token = crypto.randomUUID();
             // Remove old player entry from players list
             this.players = this.players.filter(p => p.id !== existingPlayer.id);
@@ -110,7 +129,7 @@ class Room {
                 lastSeen: Date.now()
             };
 
-            this.seats[targetSeatIndex] = newPlayer;
+            this.seats[seatToJoin] = newPlayer;
             this.players.push(newPlayer);
 
             // Map scores
@@ -126,19 +145,19 @@ class Room {
 
             return { success: true, token, playerId: token, message: 'Reconnected.' };
         } else {
-            // New Join
+            // New Join to Empty Seat
             const token = crypto.randomUUID();
             const newPlayer = {
                 id: token,
                 token: token,
-                name: name || `Player ${targetSeatIndex + 1}`,
-                seatIndex: targetSeatIndex,
+                name: name || `Player ${seatToJoin + 1}`,
+                seatIndex: seatToJoin,
                 isAdmin: false,
                 connected: true,
                 lastSeen: Date.now()
             };
 
-            this.seats[targetSeatIndex] = newPlayer;
+            this.seats[seatToJoin] = newPlayer;
             this.players.push(newPlayer);
             this.scores[newPlayer.id] = 0;
 
