@@ -629,6 +629,8 @@ class Room {
         if (hasStrong) return { error: 'Elinizde güçlü kart var, bozamazsınız' };
 
         // Valid claim, redeal
+        // User requested: "if redeal is requested the dealer shifts one position too"
+        this.dealerIndex = (this.dealerIndex + 1) % 4;
         this.startGame();
         return { success: true, message: 'El bozuldu, yeniden dağıtılıyor...' };
     }
