@@ -327,6 +327,23 @@ function App() {
         fetchState();
     }
 
+    const handleLeave = async () => {
+        if (!confirm('Masadan ayrılmak istediğinize emin misiniz?')) return;
+
+        try {
+            await api.leaveRoom(currentRoomId);
+        } catch (e) {
+            console.error("Leave failed", e);
+            // We force leave locally anyway
+        }
+
+        setIsJoined(false);
+        setRoomState(null);
+        setCurrentRoomId(null);
+        localStorage.removeItem('batak_room_id');
+        setView('LOBBY');
+    };
+
     // ... (AdminDashboard render and usage of showSuperAdmin)
 
     // Poll Lobby
@@ -535,16 +552,22 @@ function App() {
                     </ul>
 
                     {/* Admin Start Button */}
-                    {roomState.players[0]?.id === myPlayerId && (
-                        <div className="mt-8 border-t border-green-600 pt-4">
+                    <div className="mt-8 border-t border-green-600 pt-4 flex flex-col gap-2">
+                        {roomState.players[0]?.id === myPlayerId && (
                             <button
                                 onClick={startGame}
                                 className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-lg animate-pulse"
                             >
                                 OYUNU BAŞLAT
                             </button>
-                        </div>
-                    )}
+                        )}
+                        <button
+                            onClick={handleLeave}
+                            className="w-full py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded shadow-lg"
+                        >
+                            MASADAN AYRIL
+                        </button>
+                    </div>
                 </div>
             </div>
         )
@@ -569,6 +592,12 @@ function App() {
                         className="text-xs bg-red-600/50 hover:bg-red-600 px-2 py-1 rounded text-white border border-red-500"
                     >
                         YÖNETİCİ
+                    </button>
+                    <button
+                        onClick={handleLeave}
+                        className="text-xs bg-gray-600/50 hover:bg-gray-600 px-2 py-1 rounded text-white border border-gray-500"
+                    >
+                        AYRIL
                     </button>
                 </div>
                 <div className="text-green-400">

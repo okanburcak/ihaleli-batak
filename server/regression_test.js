@@ -83,6 +83,25 @@ async function runTest() {
         if (gameState.state !== 'BIDDING') throw new Error("Game did not switch to BIDDING state! State is: " + gameState.state);
         console.log("   Game started. State is BIDDING.");
 
+        console.log("   Game started. State is BIDDING.");
+
+        console.log("8. Player 2 Leaves...");
+        const leaveRes = await fetch(`${BASE_URL}/api/rooms/${roomId}/leave`, {
+            method: 'POST',
+            headers: { 'x-player-id': joinP2Data.token }
+        });
+        const leaveData = await leaveRes.json();
+        if (!leaveData.success) throw new Error("Failed to leave: " + leaveData.message);
+
+        // Check state to ensure seat is empty
+        const postLeaveStateRes = await fetch(`${BASE_URL}/api/rooms/${roomId}/state`, {
+            headers: { 'x-player-id': joinData.token } // Admin checks
+        });
+        const postLeaveState = await postLeaveStateRes.json();
+        // Seat 1 should be null or empty
+        if (postLeaveState.players[1]) throw new Error("Seat 1 should be empty after leave, but found: " + JSON.stringify(postLeaveState.players[1]));
+        console.log("   Player 2 left. Seat 1 is empty.");
+
         console.log("SUCCESS: Regression Test Passed.");
     } catch (e) {
         console.error("FAILURE: " + e.message);

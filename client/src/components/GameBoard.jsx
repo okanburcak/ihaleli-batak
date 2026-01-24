@@ -67,57 +67,87 @@ const GameBoard = ({ roomState, myPlayerId }) => {
     };
 
     return (
-        <div className="relative w-full aspect-square md:aspect-video h-[55vh] md:h-[65vh] max-h-[600px] bg-green-800 rounded-xl border-4 border-green-900 shadow-2xl p-2 md:p-4">
+        <div className="relative w-full aspect-square md:aspect-video h-[60vh] md:h-[75vh] max-h-[800px] bg-green-800 rounded-[50px] border-[12px] border-stone-800 shadow-[inset_0_0_80px_rgba(0,0,0,0.6)] p-4 md:p-8 flex items-center justify-center">
 
-            {/* Info Panel: Trump & Bid */}
-            <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-black/40 text-white p-1 md:p-2 rounded text-xs md:text-base">
-                <div>Koz: <span className="text-base md:text-2xl">{trump || '?'}</span></div>
-                <div>İhale: {winningBid.amount > 0 ? `${winningBid.amount} (${winningBid.playerId === myPlayerId ? 'Sen' : '...'})` : 'Yok'}</div>
-            </div>
+            {/* Table Felt Texture Effect (CSS Gradient) */}
+            <div className="absolute inset-0 rounded-[38px] bg-gradient-to-br from-green-700 to-green-900 opacity-50 pointer-events-none"></div>
 
-            {/* Scoreboard */}
-            <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-black/40 text-white p-1 md:p-2 rounded text-[10px] md:text-sm">
-                <h3>Puanlar</h3>
-                {players.map(p => (
-                    <div key={p.id}>{p.name}: {scores[p.id]} ({roundScores[p.id] || 0})</div>
-                ))}
-            </div>
-
-            {/* TOP PLAYER */}
-            <div className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-                <PlayerAvatar player={orderedPlayers[2]} />
-                {/* Card Slot */}
-                <div className="mt-1 md:mt-4">
-                    <Card card={getPlayerCardInTrick(orderedPlayers[2]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+            {/* Central Area: Playing Surface */}
+            <div className="relative w-2/3 h-2/3 flex items-center justify-center">
+                {/* Center Logo/Decoration */}
+                <div className="absolute opacity-10 text-stone-900 text-6xl font-bold tracking-widest pointer-events-none select-none">
+                    BATAK
                 </div>
-            </div>
 
-            {/* LEFT PLAYER (Position 3) */}
-            <div className="absolute left-2 md:left-8 top-1/2 transform -translate-y-1/2 flex flex-row items-center">
-                <div className="mr-2 md:mr-4">
-                    <PlayerAvatar player={orderedPlayers[3]} />
+                {/* Info Panel: Trump & Bid - Floats Top Left */}
+                <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/80 text-yellow-500 p-3 rounded-xl border border-yellow-600 shadow-xl backdrop-blur-sm transform -rotate-6">
+                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400">KOZ</div>
+                    <div className="text-3xl md:text-4xl leading-none mb-1 text-center">{trump || '?'}</div>
+                    <div className="h-px bg-stone-600 my-1"></div>
+                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400">İHALE</div>
+                    <div className="text-lg md:text-xl text-white text-center">
+                        {winningBid.amount > 0 ? winningBid.amount : '-'}
+                    </div>
                 </div>
-                {/* Card Slot */}
-                <div>
-                    <Card card={getPlayerCardInTrick(orderedPlayers[3]?.id)} showGomu={myPlayerId === winningBid.playerId} />
-                </div>
-            </div>
 
-            {/* RIGHT PLAYER (Position 1) */}
-            <div className="absolute right-2 md:right-8 top-1/2 transform -translate-y-1/2 flex flex-row-reverse items-center">
-                <div className="ml-2 md:ml-4">
-                    <PlayerAvatar player={orderedPlayers[1]} />
+                {/* Scoreboard - Floats Top Right */}
+                <div className="absolute -top-16 -right-16 md:-top-20 md:-right-24 bg-stone-900/80 text-white p-3 rounded-xl border border-stone-600 shadow-xl backdrop-blur-sm transform rotate-3">
+                    <h3 className="font-bold text-xs uppercase text-stone-400 mb-2 border-b border-stone-600 pb-1">Skorlar</h3>
+                    <div className="space-y-1 text-xs md:text-sm">
+                        {players.map(p => (
+                            <div key={p.id} className="flex justify-between gap-4">
+                                <span className={p.id === myPlayerId ? 'text-yellow-400 font-bold' : 'text-gray-300'}>{p.name}</span>
+                                <span className="font-mono">{scores[p.id]} ({roundScores[p.id] || 0})</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                {/* Card Slot */}
-                <div>
-                    <Card card={getPlayerCardInTrick(orderedPlayers[1]?.id)} showGomu={myPlayerId === winningBid.playerId} />
-                </div>
-            </div>
 
-            {/* BOTTOM PLAYER (ME) */}
-            <div className="absolute bottom-16 md:bottom-24 left-1/2 transform -translate-x-1/2">
-                <div className="mb-0">
-                    <Card card={getPlayerCardInTrick(orderedPlayers[0]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+                {/* --- PLAYERS --- */}
+
+                {/* TOP PLAYER (Partner/Opponent) */}
+                <div className="absolute -top-12 md:-top-16 left-1/2 transform -translate-x-1/2 flex flex-col items-center z-10">
+                    <PlayerAvatar player={orderedPlayers[2]} />
+                    {/* Card Slot - Pushed down onto table */}
+                    <div className="absolute top-16 md:top-24 transform scale-75 md:scale-90 transition-all duration-500">
+                        <Card card={getPlayerCardInTrick(orderedPlayers[2]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+                    </div>
+                </div>
+
+                {/* LEFT PLAYER */}
+                <div className="absolute left-0 top-1/2 transform -translate-x-1/2 md:-translate-x-full -translate-y-1/2 flex flex-row items-center z-10">
+                    <div className="mr-0 md:mr-8 flex flex-col items-center">
+                        <PlayerAvatar player={orderedPlayers[3]} />
+                    </div>
+                    {/* Card Slot - Pushed right onto table */}
+                    <div className="absolute left-16 md:left-24 transform scale-75 md:scale-90 transition-all duration-500">
+                        <Card card={getPlayerCardInTrick(orderedPlayers[3]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+                    </div>
+                </div>
+
+                {/* RIGHT PLAYER */}
+                <div className="absolute right-0 top-1/2 transform translate-x-1/2 md:translate-x-full -translate-y-1/2 flex flex-row-reverse items-center z-10">
+                    <div className="ml-0 md:ml-8 flex flex-col items-center">
+                        <PlayerAvatar player={orderedPlayers[1]} />
+                    </div>
+                    {/* Card Slot - Pushed left onto table */}
+                    <div className="absolute right-16 md:right-24 transform scale-75 md:scale-90 transition-all duration-500">
+                        <Card card={getPlayerCardInTrick(orderedPlayers[1]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+                    </div>
+                </div>
+
+                {/* BOTTOM PLAYER (ME) - Avatar not really needed maybe? Or small? Keep consistent. */}
+                {/* Actually, usually "Me" is at the bottom of the screen, outside the table logic often. */}
+                {/* But for the avatar display (turn indicator), we need it. */}
+                <div className="absolute -bottom-16 md:-bottom-20 left-1/2 transform -translate-x-1/2 z-10">
+                    {/* We only show avatar if game is optimizing for table view */}
+                    {/* The cards are in the hand below. The played card goes ON table. */}
+                    <div className="opacity-0 md:opacity-100 transition-opacity">
+                        <PlayerAvatar player={orderedPlayers[0]} />
+                    </div>
+                    <div className="absolute bottom-20 md:bottom-32 transform scale-75 md:scale-90 transition-all duration-500">
+                        <Card card={getPlayerCardInTrick(orderedPlayers[0]?.id)} showGomu={myPlayerId === winningBid.playerId} />
+                    </div>
                 </div>
             </div>
         </div>

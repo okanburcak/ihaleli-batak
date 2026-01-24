@@ -164,6 +164,30 @@ class Room {
             return { success: true, token, playerId: token, message: 'Joined.' };
         }
     }
+    // Returns { success, message }
+    removePlayer(playerId) {
+        const pIndex = this.seats.findIndex(p => p?.id === playerId);
+        if (pIndex === -1) return { error: 'Player not found in room' };
+
+        const player = this.seats[pIndex];
+
+        // Remove from seats
+        this.seats[pIndex] = null;
+
+        // Remove from players list
+        this.players = this.players.filter(p => p.id !== playerId);
+
+        // Remove scores (optional, but cleaner for full leave)
+        delete this.scores[playerId];
+        delete this.roundScores[playerId];
+
+        // If game is in progress, this might break things. 
+        // For now, we assume this is used in LOBBY (WAITING) state mostly.
+        // If used during game, it's effectively a forfeit/disconnect.
+
+        return { success: true, message: 'Left room' };
+    }
+
 
     getPlayerState(playerId) {
         const player = this.players.find(p => p.id === playerId);

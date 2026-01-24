@@ -35,6 +35,14 @@ export const api = {
         return res.json();
     },
 
+    leaveRoom: async (roomId) => {
+        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/leave`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return res.json();
+    },
+
     createRoom: async () => {
         const res = await fetch(`${BASE_URL}/api/rooms`, {
             method: 'POST',

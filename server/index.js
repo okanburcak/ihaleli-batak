@@ -60,6 +60,24 @@ app.post('/api/rooms/:roomId/join', (req, res) => {
     }
 });
 
+// Leave Room
+app.post('/api/rooms/:roomId/leave', (req, res) => {
+    const { roomId } = req.params;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.removePlayer(playerId);
+    // Even if error (e.g. not found), we can consider it a success for the client
+    // or return the error. Let's return the result.
+    if (result.success) {
+        res.json(result);
+    } else {
+        res.status(400).json(result);
+    }
+});
+
 // Get State (Polling Endpoint)
 app.get('/api/rooms/:roomId/state', (req, res) => {
     const { roomId } = req.params;
