@@ -173,6 +173,19 @@ app.post('/api/rooms/:roomId/play', (req, res) => {
     res.json(result);
 });
 
+// Broadcast Sound
+app.post('/api/rooms/:roomId/sound', (req, res) => {
+    const { roomId } = req.params;
+    const { type } = req.body; // 'hurry', 'shame'
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.broadcastSound(type, playerId);
+    res.json(result);
+});
+
 
 // Debug Endpoint
 app.get('/api/debug/:roomId', (req, res) => {

@@ -108,6 +108,15 @@ export const api = {
         return res.json();
     },
 
+    broadcastSound: async (roomId, type) => {
+        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/sound`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ type })
+        });
+        return res.json();
+    },
+
     // Admin API
     adminListRooms: async () => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getHeaders() });

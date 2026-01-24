@@ -96,6 +96,7 @@ function App() {
     const prevRoomState = useRef(null);
     const roundEndSoundPlayed = useRef(false);
     const [showSuperAdmin, setShowSuperAdmin] = useState(false);
+    const lastPlayedSoundId = useRef(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -133,43 +134,45 @@ function App() {
             if (roomState.currentTurn === myPlayerId) {
                 playSound('win');
             }
-            // No sound for losing a single trick (Shame is only for round end 0 tricks)
         }
 
-        // 4. Round End Shame Sound (0 Tricks at end of round)
-        if (roomState.roundScores) {
-            const totalTricks = Object.values(roomState.roundScores).reduce((a, b) => a + b, 0);
+        // 4. Manual Sounds (Polling)
+        if (roomState.lastSound) {
+            const { id, type, from } = roomState.lastSound;
+            // Play if new ID and NOT from me (or play for me too? Users usually want feedback they clicked. Let's play for everyone)
+            // Actually, if I clicked it, I might want to hear it too to know it worked.
+            // But if I play it immediately on click, I shouldn't play it again from poll.
+            // Let's rely on poll for everyone for sync, or optimistic UI?
+            // Simple: Poll triggers it.
 
-            if (totalTricks === 12) {
-                if (!roundEndSoundPlayed.current) {
-                    const myTricks = roomState.roundScores[myPlayerId] || 0;
-                    if (myTricks === 0) {
-                        playSound('shame');
-                    }
-                    roundEndSoundPlayed.current = true;
+            if (id !== lastPlayedSoundId.current) {
+                // Prevent playing old sounds on join? timestamp check?
+                // For now, ID check is enough if we init ref to null.
+                // But on refresh/join, lastSound might be old.
+                // Check timestamp > joinTime? 
+                // Simple: just play it. It's rare.
+
+                // If I sent it, maybe I already played it? 
+                // Let's just play it.
+
+                if (type === 'hurry') playSound('hurry');
+                if (type === 'shame') playSound('shame');
+
+                lastPlayedSoundId.current = id;
+
+                // Show toast?
+                const sender = roomState.players.find(p => p.id === from)?.name || 'Someone';
+                if (from !== myPlayerId) {
+                    setErrorMsg(`${sender}: ${type === 'hurry' ? 'Hadi!' : 'Yuh!'}`);
+                    setTimeout(() => setErrorMsg(''), 2000);
                 }
-            } else {
-                // Reset flag when new round starts (tricks < 12)
-                roundEndSoundPlayed.current = false;
             }
         }
 
         prevRoomState.current = roomState;
     }, [roomState, myPlayerId, playSound]);
 
-    // Hurry Timer Effect
-    useEffect(() => {
-        if (!roomState || !roomState.currentTurn) return;
-        // Don't play in Lobby or Game Over
-        if (roomState.state === 'WAITING' || roomState.state === 'GAME_OVER') return;
-
-        // Timer to play hurry sound if turn takes > 5s
-        const timer = setTimeout(() => {
-            playSound('hurry');
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [roomState?.currentTurn, roomState?.state, playSound]);
+    // Removed Auto Hurry Timer Effect used to be here
 
     const [currentRoomId, setCurrentRoomId] = useState(null);
 
@@ -591,6 +594,20 @@ function App() {
                     >
                         YÖNETİCİ
                     </button>
+                    {/* Sound Buttons */}
+                    <button
+                        onClick={() => api.broadcastSound(currentRoomId, 'hurry')}
+                        className="text-xs bg-yellow-600/50 hover:bg-yellow-600 px-2 py-1 rounded text-white border border-yellow-500"
+                    >
+                        HADİ!
+                    </button>
+                    <button
+                        onClick={() => api.broadcastSound(currentRoomId, 'shame')}
+                        className="text-xs bg-purple-600/50 hover:bg-purple-600 px-2 py-1 rounded text-white border border-purple-500"
+                    >
+                        YUH!
+                    </button>
+
                     <button
                         onClick={handleLeave}
                         className="text-xs bg-gray-600/50 hover:bg-gray-600 px-2 py-1 rounded text-white border border-gray-500"

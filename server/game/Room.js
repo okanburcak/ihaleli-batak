@@ -247,8 +247,20 @@ class Room {
             bids: this.bids,
 
             activeBidders: this.activeBidders,
-            pendingStateChange: this.pendingStateChange // Helpful for client to know if trick is resolving
+            activeBidders: this.activeBidders,
+            pendingStateChange: this.pendingStateChange,
+            lastSound: this.lastSound
         };
+    }
+
+    broadcastSound(soundType, playerId) {
+        this.lastSound = {
+            id: crypto.randomUUID(),
+            type: soundType,
+            from: playerId,
+            timestamp: Date.now()
+        };
+        return { success: true };
     }
 
     startGame() {
