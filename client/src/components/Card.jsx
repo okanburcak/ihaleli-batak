@@ -41,7 +41,7 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
                 </div>
             </div>
             {card.fromKitty && showGomu && (
-                <div className="absolute top-0 right-0 bg-purple-500 text-[10px] md:text-xs px-1 text-white rounded-bl">G</div>
+                <div className="absolute top-0 left-0 bg-purple-500 text-[10px] md:text-xs px-1 text-white rounded-br">G</div>
             )}
         </div>
     );
