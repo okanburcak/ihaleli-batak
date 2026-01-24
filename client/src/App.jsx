@@ -526,11 +526,6 @@ function App() {
                             if (!p) return (
                                 <li key={idx} className="flex flex-col bg-green-700/30 p-2 rounded border border-dashed border-gray-500">
                                     <span className="text-gray-400 italic">Boş Koltuk {idx + 1}</span>
-                                    {roomState.players[0]?.id === myPlayerId && idx > 0 && (
-                                        <div className="text-yellow-400 font-mono text-lg mt-1 font-bold">
-                                            KOD: {roomState.seatCodes[idx]}
-                                        </div>
-                                    )}
                                 </li>
                             );
                             return (
@@ -543,9 +538,6 @@ function App() {
                                     </div>
                                     {p.id === myPlayerId && <span className="text-xs bg-yellow-500 text-black px-1 rounded">SEN</span>}
                                     {p.isAdmin && <span className="text-xs bg-red-600 text-white px-1 rounded ml-2">YÖNETİCİ</span>}
-                                    {roomState.players[0]?.id === myPlayerId && (
-                                        <span className="text-xs ml-2 font-mono text-gray-300">[{roomState.seatCodes[idx]}]</span>
-                                    )}
                                 </li>
                             );
                         })}

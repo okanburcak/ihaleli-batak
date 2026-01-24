@@ -65,38 +65,21 @@ class Room {
             this.players.push(player);
             this.scores[player.id] = 0;
 
-            // Generate codes for other 3 seats
-            this.seatCodes = {
-                1: this.generateCode(),
-                2: this.generateCode(),
-                3: this.generateCode()
-            };
+            // Codes no longer used
+            this.seatCodes = {};
 
             return { success: true, token, playerId: token, message: 'Room created. You are Admin.' };
         }
 
-        // 2. Validate Seat / Code
-        // If targetSeatIndex is provided, we try to join that seat.
-        // If code is provided, we check if it matches ANY seat (existing logic).
-
+        // 2. Validate Seat
         let seatToJoin = -1;
 
         if (targetSeatIndex !== -1) {
-            // Explicit seat request (Public Join)
+            // Explicit seat request
             if (targetSeatIndex < 0 || targetSeatIndex > 3) return { success: false, message: 'Invalid seat.' };
             seatToJoin = targetSeatIndex;
-        } else if (code) {
-            // Code based join (Private/Link logic)
-            for (const [seatIdx, roomCode] of Object.entries(this.seatCodes)) {
-                if (roomCode === code) {
-                    seatToJoin = parseInt(seatIdx);
-                    break;
-                }
-            }
-            if (seatToJoin === -1) return { success: false, message: 'Invalid code.' };
         } else {
-            // No code, no seat -> Auto assign empty? Or fail?
-            // Let's auto-assign the first empty seat.
+            // Auto assign first empty seat
             seatToJoin = this.seats.findIndex(s => s === null);
             if (seatToJoin === -1) return { success: false, message: 'Room is full.' };
         }

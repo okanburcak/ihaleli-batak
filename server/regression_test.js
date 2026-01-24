@@ -49,17 +49,11 @@ async function runTest() {
         console.log("   Admin API verified.");
 
         console.log("6. Joining Player 2...");
-        const adminStateRes = await fetch(`${BASE_URL}/api/rooms/${roomId}/state`, {
-            headers: { 'x-player-id': joinData.token }
-        });
-        const adminState = await adminStateRes.json();
-        const p2Code = adminState.seatCodes['1'];
-        if (!p2Code) throw new Error("No code for seat 1!");
-
+        // No need to fetch code anymore
         const joinP2Res = await fetch(`${BASE_URL}/api/rooms/${roomId}/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Player2', code: p2Code })
+            body: JSON.stringify({ name: 'Player2', seatIndex: 1 })
         });
         const joinP2Data = await joinP2Res.json();
         if (!joinP2Data.success) throw new Error("Player 2 failed to join: " + joinP2Data.message);
