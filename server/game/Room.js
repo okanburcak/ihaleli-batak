@@ -572,6 +572,7 @@ class Room {
         if (took >= bid) bidderScore = took; // New Logic: Get score equal to tricks taken
         else bidderScore = -bid;
 
+        const previousScore = this.scores[bidderId] || 0;
         this.scores[bidderId] += bidderScore;
 
         this.seats.forEach(p => {
@@ -584,8 +585,16 @@ class Room {
 
         // Check Winner
         let winner = null;
-        for (const [pid, score] of Object.entries(this.scores)) {
-            if (score >= 51) winner = pid;
+
+        // Auto Win Condition: Bid 11 or 12, Score >= 0 (before round), and made the bid
+        if (bid >= 11 && previousScore >= 0 && took >= bid) {
+            winner = bidderId;
+        }
+
+        if (!winner) {
+            for (const [pid, score] of Object.entries(this.scores)) {
+                if (score >= 51) winner = pid;
+            }
         }
 
         if (winner) {
