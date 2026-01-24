@@ -665,6 +665,18 @@ function App() {
                     >
                         YUH!
                     </button>
+                    {(roomState?.state === 'BIDDING' && myHand.length > 0 && !myHand.some(c => ['A', 'K', 'Q', 'J'].includes(c.rank))) && (
+                        <button
+                            onClick={() => {
+                                if (confirm('Elinizde A, K, Q, J yok. Eli bozmak istiyor musunuz?')) {
+                                    api.requestRedeal(currentRoomId).then(() => fetchState());
+                                }
+                            }}
+                            className="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded border border-red-500 animate-pulse"
+                        >
+                            ELİ BOZ
+                        </button>
+                    )}
 
                     <button
                         onClick={handleLeave}

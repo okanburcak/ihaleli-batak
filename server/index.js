@@ -186,6 +186,18 @@ app.post('/api/rooms/:roomId/sound', (req, res) => {
     res.json(result);
 });
 
+// Redeal (Eli Boz)
+app.post('/api/rooms/:roomId/redeal', (req, res) => {
+    const { roomId } = req.params;
+    const playerId = req.headers['x-player-id'];
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.requestRedeal(playerId);
+    res.json(result);
+});
+
 
 // Debug Endpoint
 app.get('/api/debug/:roomId', (req, res) => {

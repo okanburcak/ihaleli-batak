@@ -615,6 +615,23 @@ class Room {
             this.startGame();
         }, 5000);
     }
+
+    requestRedeal(playerId) {
+        if (this.state !== 'BIDDING') return { error: 'Sadece ihale sırasında bozulabilir' };
+
+        const pIndex = this.seats.findIndex(p => p?.id === playerId);
+        const hand = this.hands[pIndex];
+        if (!hand) return { error: 'El bulunamadı' };
+
+        const strongCards = ['A', 'K', 'Q', 'J'];
+        const hasStrong = hand.some(c => strongCards.includes(c.rank));
+
+        if (hasStrong) return { error: 'Elinizde güçlü kart var, bozamazsınız' };
+
+        // Valid claim, redeal
+        this.startGame();
+        return { success: true, message: 'El bozuldu, yeniden dağıtılıyor...' };
+    }
 }
 
 module.exports = Room;
