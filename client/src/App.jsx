@@ -780,7 +780,7 @@ function App() {
             )}
 
             {/* MY HAND - Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 w-full h-40 md:h-48 z-40 bg-gradient-to-t from-black via-black/60 to-transparent flex items-end justify-center overflow-hidden pointer-events-none">
+            <div className="fixed bottom-0 left-0 w-full h-56 md:h-48 z-50 bg-gradient-to-t from-black via-black/60 to-transparent flex items-end justify-center overflow-hidden pointer-events-none">
                 <div className="w-full h-full flex items-end justify-center">
                     {renderHand()}
                 </div>
