@@ -2,7 +2,7 @@ import React from 'react';
 
 const SuitIcon = ({ suit }) => {
     const color = (suit === '♥' || suit === '♦') ? 'text-red-600' : 'text-black';
-    return <span className={`${color} text-4xl md:text-6xl select-none`}>{suit}</span>;
+    return <span className={`${color} text-6xl select-none`}>{suit}</span>;
 };
 
 const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = false }) => {
@@ -29,15 +29,15 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
         >
             <div className="w-full flex justify-start">
                 <div className={`flex flex-col items-center leading-none ${(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}`}>
-                    <span className="text-xl md:text-2xl font-bold">{card.rank}</span>
-                    <span className="text-lg md:text-xl">{card.suit}</span>
+                    <span className="text-2xl font-bold">{card.rank}</span>
+                    <span className="text-xl">{card.suit}</span>
                 </div>
             </div>
             <SuitIcon suit={card.suit} />
             <div className="w-full flex justify-end transform rotate-180">
                 <div className={`flex flex-col items-center leading-none ${(card.suit === '♥' || card.suit === '♦') ? 'text-red-600' : 'text-black'}`}>
-                    <span className="text-xl md:text-2xl font-bold">{card.rank}</span>
-                    <span className="text-lg md:text-xl">{card.suit}</span>
+                    <span className="text-2xl font-bold">{card.rank}</span>
+                    <span className="text-xl">{card.suit}</span>
                 </div>
             </div>
             {card.fromKitty && showGomu && (
