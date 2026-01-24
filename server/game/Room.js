@@ -528,7 +528,8 @@ class Room {
         const took = this.roundScores[bidderId] || 0;
 
         let bidderScore = 0;
-        if (took >= bid) bidderScore = bid; else bidderScore = -bid;
+        if (took >= bid) bidderScore = took; // New Logic: Get score equal to tricks taken
+        else bidderScore = -bid;
 
         this.scores[bidderId] += bidderScore;
 
