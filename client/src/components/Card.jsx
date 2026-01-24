@@ -21,7 +21,7 @@ const Card = ({ card, onClick, isPlayable = false, isPlayed = false, showGomu = 
         <div
             onClick={() => isPlayable ? onClick(card) : null}
             className={`
-                w-14 h-20 md:w-20 md:h-28 bg-white rounded-lg shadow-lg flex flex-col items-center justify-between p-1 md:p-2 
+                w-20 h-28 md:w-24 md:h-36 bg-white rounded-lg shadow-lg flex flex-col items-center justify-between p-1 md:p-2 
                 cursor-pointer transition-transform transform relative overflow-hidden
                 ${isPlayable ? 'hover:-translate-y-4 hover:shadow-xl' : ''}
                 ${isPlayed ? 'z-0' : 'hover:z-10'}

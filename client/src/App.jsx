@@ -98,6 +98,63 @@ function App() {
     const [showSuperAdmin, setShowSuperAdmin] = useState(false);
     const lastPlayedSoundId = useRef(null);
 
+    // Mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Hand Rendering Logic
+    const renderHand = () => {
+        if (!myHand || myHand.length === 0) return null;
+
+        let rows = [];
+        if (isMobile && myHand.length > 8) {
+            // Split into two rows for mobile
+            const mid = Math.ceil(myHand.length / 2);
+            rows.push(myHand.slice(0, mid)); // Top row (Back)
+            rows.push(myHand.slice(mid));    // Bottom row (Front)
+        } else {
+            rows.push(myHand);
+        }
+
+        return (
+            <div className="flex flex-col items-center justify-end h-full pb-2 pointer-events-none">
+                {rows.map((rowCards, rowIdx) => (
+                    <div
+                        key={rowIdx}
+                        className={`
+                            flex items-end justify-center transition-transform duration-300 pointer-events-auto gap-2
+                            ${rowIdx === 0 && rows.length > 1 ? '-mb-12 scale-90 opacity-90 z-10' : 'z-20'}
+                        `}
+                    >
+                        {rowCards.map((card, idx) => (
+                            <div
+                                key={`${card.suit}-${card.rank}-${idx}`}
+                                className={`
+                                    transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
+                                `}
+                                style={{
+                                    zIndex: idx + (rowIdx * 20)
+                                }}
+                            >
+                                <Card
+                                    card={card}
+                                    isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
+                                    onClick={playCard}
+                                    showGomu={true}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('admin') === 'true') {
@@ -723,27 +780,9 @@ function App() {
             )}
 
             {/* MY HAND - Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 w-full h-24 md:h-40 z-40 bg-gradient-to-t from-black via-black/50 to-transparent flex items-end justify-center pb-2 px-2 overflow-hidden">
-                <div className="flex items-end justify-center transform translate-y-4 hover:translate-y-0 transition-transform duration-300">
-                    {myHand.map((card, idx) => (
-                        <div
-                            key={`${card.suit}-${card.rank}-${idx}`}
-                            className={`
-                                transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
-                                ${idx !== 0 ? '-ml-8 md:-ml-12' : ''}
-                            `}
-                            style={{
-                                zIndex: idx
-                            }}
-                        >
-                            <Card
-                                card={card}
-                                isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
-                                onClick={playCard}
-                                showGomu={true}
-                            />
-                        </div>
-                    ))}
+            <div className="fixed bottom-0 left-0 w-full h-40 md:h-48 z-40 bg-gradient-to-t from-black via-black/60 to-transparent flex items-end justify-center overflow-hidden pointer-events-none">
+                <div className="w-full h-full flex items-end justify-center">
+                    {renderHand()}
                 </div>
             </div>
         </div>

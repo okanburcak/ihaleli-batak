@@ -305,7 +305,7 @@ class Room {
         }
 
         this.bids = {};
-        this.activeBidders = this.players.map(p => p.id);
+        this.activeBidders = this.seats.filter(p => p !== null).map(p => p.id);
     }
 
     bid(playerId, amount) {
