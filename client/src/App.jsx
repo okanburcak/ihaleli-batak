@@ -471,7 +471,12 @@ function App() {
             return (
                 <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white font-sans">
                     <div className="bg-green-800/80 p-8 rounded-2xl shadow-2xl border border-green-600 w-full max-w-md backdrop-blur-sm">
-                        <h1 className="text-4xl font-extrabold mb-8 text-center text-yellow-400 drop-shadow-md">İhaleli Batak</h1>
+                        <div className="flex justify-center mb-6">
+                            <img src="/logo.png" alt="Kayısı Cafe Logo" className="w-48 h-48 rounded-full border-4 border-yellow-500 shadow-xl object-cover animate-bounce-slow" />
+                        </div>
+                        <h1 className="text-5xl font-extrabold mb-8 text-center text-orange-400 drop-shadow-md uppercase tracking-wide">
+                            KAYISI CAFE
+                        </h1>
                         <div className="flex flex-col gap-6">
                             <div className="relative group">
                                 <input
