@@ -714,6 +714,11 @@ function App() {
                         </div>
                     </div>
                 )}
+
+                {/* Player Hand */}
+                <div className="absolute bottom-0 w-full h-40 md:h-56 z-40 pointer-events-none">
+                    {renderHand()}
+                </div>
             </div>
         );
     };
