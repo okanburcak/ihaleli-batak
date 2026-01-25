@@ -616,9 +616,16 @@ function App() {
                             {roomState.players[0]?.id === myPlayerId && (
                                 <button
                                     onClick={startGame}
-                                    className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-lg animate-pulse"
+                                    disabled={roomState.players.filter(p => p !== null).length < 4}
+                                    className={`
+                                        w-full py-3 font-bold rounded shadow-lg transition-all
+                                        ${roomState.players.filter(p => p !== null).length < 4
+                                            ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+                                            : 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
+                                        }
+                                    `}
                                 >
-                                    OYUNU BAŞLAT
+                                    {roomState.players.filter(p => p !== null).length < 4 ? '4 KİŞİ BEKLENİYOR' : 'OYUNU BAŞLAT'}
                                 </button>
                             )}
                             <button

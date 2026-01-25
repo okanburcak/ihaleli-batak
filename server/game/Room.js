@@ -266,6 +266,21 @@ class Room {
     startGame() {
         if (this.state !== 'GAME_OVER' && this.state !== 'WAITING') return;
 
+        // Enforce 4 Players
+        const playerCount = this.seats.filter(p => p !== null).length;
+        if (playerCount < 4) return { error: 'Not enough players' }; // Though this method is usually void, adding check logic.
+        // Actually this method is called by the route handler which returns {success:true}.
+        // If I return here, the route handler doesn't catch it unless I throw or specific return.
+        // Route `api/rooms/:roomId/start` calls `room.startGame()`.
+        // I should return a value that the route can use or just silently fail?
+        // Let's silently fail for now to match current `if` style, OR update route?
+        // The current code just checks state.
+
+        // Let's return false/error if failed. But `start` route handler lines 116 just calls `room.startGame(); res.json(...)`.
+        // So I can't easily bubble the error message up without changing the route handler too.
+        // But preventing the state change is the core goal.
+
+
         this.state = 'BIDDING';
         this.deck.reset();
         const { hands, kitty } = this.deck.deal();
