@@ -165,7 +165,7 @@ const GameBoard = ({ roomState, myPlayerId }) => {
                 <div className="absolute -bottom-16 md:-bottom-20 left-1/2 transform -translate-x-1/2 z-10">
                     {/* We only show avatar if game is optimizing for table view */}
                     {/* The cards are in the hand below. The played card goes ON table. */}
-                    <div className="opacity-0 md:opacity-100 transition-opacity">
+                    <div className="opacity-100 transition-opacity">
                         <PlayerAvatar player={orderedPlayers[0]} />
                     </div>
                     <div className="absolute bottom-20 md:bottom-32 transform scale-75 md:scale-90 transition-all duration-500">
