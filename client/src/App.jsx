@@ -345,7 +345,11 @@ function App() {
 
     const createTable = async () => {
         try {
-            const res = await api.createRoom();
+            const scoreStr = prompt("Oyun kaçta bitsin? (Örn: 51, 101)", "51");
+            if (scoreStr === null) return; // Cancelled
+            const score = parseInt(scoreStr) || 51;
+
+            const res = await api.createRoom(score);
             if (res.roomId) {
                 joinRoom(res.roomId, 0);
             }

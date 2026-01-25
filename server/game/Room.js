@@ -2,8 +2,9 @@ const Deck = require('./Deck');
 const crypto = require('crypto');
 
 class Room {
-    constructor(roomId) {
+    constructor(roomId, winningScore = 51) {
         this.roomId = roomId;
+        this.winningScore = parseInt(winningScore) || 51;
         this.maxPlayers = 4;
 
         // Players array: { id(uuid), name, seatIndex, isAdmin, lastSeen, connected }
@@ -225,6 +226,7 @@ class Room {
     getPublicState() {
         return {
             roomId: this.roomId,
+            winningScore: this.winningScore,
             players: this.seats.map((p, idx) => {
                 if (!p) return null;
                 return {
@@ -608,7 +610,7 @@ class Room {
 
         if (!winner) {
             for (const [pid, score] of Object.entries(this.scores)) {
-                if (score >= 51) winner = pid;
+                if (score >= this.winningScore) winner = pid;
             }
         }
 

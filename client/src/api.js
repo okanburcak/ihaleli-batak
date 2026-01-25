@@ -43,10 +43,11 @@ export const api = {
         return res.json();
     },
 
-    createRoom: async () => {
+    createRoom: async (winningScore = 51) => {
         const res = await fetch(`${BASE_URL}/api/rooms`, {
             method: 'POST',
-            headers: getHeaders()
+            headers: getHeaders(),
+            body: JSON.stringify({ winningScore })
         });
         return res.json();
     },

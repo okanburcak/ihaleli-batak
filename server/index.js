@@ -11,12 +11,13 @@ const PORT = 3000;
 // Game State Storage
 const rooms = {};
 
-// Helper to get room
-const getRoom = (roomId) => {
+// Helper to get room, optionally creating with settings
+const getRoom = (roomId, winningScore = 51) => {
     if (!rooms[roomId]) {
-        rooms[roomId] = new Room(roomId);
+        rooms[roomId] = new Room(roomId, winningScore);
     }
-    return rooms[roomId];
+    return rooms[roomId]; // Note: If room already exists, ignored score is correct behavior for 'get'. 
+    // But 'create' endpoint calls this.
 };
 
 // --- Routes ---
@@ -31,6 +32,7 @@ app.get('/api/rooms', (req, res) => {
             playerCount: r.players.filter(p => !!p).length,
             seats: r.seats.map(s => s ? { name: s.name, connected: s.connected } : null),
             state: r.state,
+            winningScore: r.winningScore,
             lastSeen: Date.now() // Placeholder
         };
     });
@@ -41,7 +43,8 @@ app.get('/api/rooms', (req, res) => {
 app.post('/api/rooms', (req, res) => {
     // Generate Random 6 digit Room ID
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
-    const room = getRoom(roomId); // This creates it
+    const { winningScore } = req.body;
+    const room = getRoom(roomId, winningScore); // This creates it
     res.json({ roomId });
 });
 
