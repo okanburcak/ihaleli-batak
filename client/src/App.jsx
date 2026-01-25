@@ -111,47 +111,42 @@ function App() {
     const renderHand = () => {
         if (!myHand || myHand.length === 0) return null;
 
-        let rows = [];
-        if (isMobile && myHand.length > 8) {
-            // Split into two rows for mobile
-            const mid = Math.ceil(myHand.length / 2);
-            rows.push(myHand.slice(0, mid)); // Top row (Back)
-            rows.push(myHand.slice(mid));    // Bottom row (Front)
-        } else {
-            rows.push(myHand);
-        }
+        // Dynamic overlap calculation for single row
+        // Base overlap is -ml-8 (large overlap) for most cases to ensure fit
+        // If few cards, relax it.
+        let marginClass = '-ml-12'; // Default tightest for 13 cards
+        if (myHand.length <= 5) marginClass = '-ml-2';
+        else if (myHand.length <= 8) marginClass = '-ml-8'; // Medium
+        else marginClass = '-ml-12 md:-ml-16'; // Tight
+
+        // Precise mobile adjustment
+        // On very small screens with 13 cards, we need extreme overlap.
+        // We can use style for precision if needed, but Tailwind classes are cleaner if sufficient.
 
         return (
-            <div className="flex flex-col items-center justify-end h-full pb-2 pointer-events-none">
-                {rows.map((rowCards, rowIdx) => (
-                    <div
-                        key={rowIdx}
-                        className={`
-                            flex items-end justify-center transition-transform duration-300 pointer-events-auto
-                            ${rowIdx === 0 && rows.length > 1 ? '-mb-12 scale-90 opacity-90 z-10' : 'z-20'}
-                        `}
-                    >
-                        {rowCards.map((card, idx) => (
-                            <div
-                                key={`${card.suit}-${card.rank}-${idx}`}
-                                className={`
-                                    transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
-                                    ${idx !== 0 ? '-ml-4 lg:-ml-8' : ''}
-                                `}
-                                style={{
-                                    zIndex: idx + (rowIdx * 20)
-                                }}
-                            >
-                                <Card
-                                    card={card}
-                                    isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
-                                    onClick={playCard}
-                                    showGomu={true}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                ))}
+            <div className="flex items-center justify-center h-full pb-4 pointer-events-none w-full px-2 overflow-hidden">
+                <div className="flex items-end justify-center pointer-events-auto transition-all duration-300">
+                    {myHand.map((card, idx) => (
+                        <div
+                            key={`${card.suit}-${card.rank}-${idx}`}
+                            className={`
+                                relative
+                                transform transition-all duration-300 hover:-translate-y-10 hover:z-50 origin-bottom
+                                ${idx !== 0 ? marginClass : ''}
+                            `}
+                            style={{
+                                zIndex: idx
+                            }}
+                        >
+                            <Card
+                                card={card}
+                                isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
+                                onClick={playCard}
+                                showGomu={true}
+                            />
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     };
