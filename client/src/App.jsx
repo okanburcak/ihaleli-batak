@@ -618,7 +618,7 @@ function App() {
                 </div>
 
                 {/* Admin Panel */}
-                {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+                {showAdmin && <AdminPanel roomId={currentRoomId} onClose={() => setShowAdmin(false)} />}
 
                 {/* Super Admin Dashboard */}
                 {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}

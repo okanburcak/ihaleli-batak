@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 
-export default function AdminPanel({ onClose }) {
+export default function AdminPanel({ roomId, onClose }) {
     const [players, setPlayers] = useState([]);
 
     useEffect(() => {
@@ -16,12 +16,12 @@ export default function AdminPanel({ onClose }) {
         return () => {
             clearInterval(interval);
         };
-    }, []);
+    }, [roomId]);
 
     const fetchPlayers = async () => {
-        // We reuse getState('room1') for now as it's the only room
+        if (!roomId) return;
         try {
-            const data = await api.getState('room1');
+            const data = await api.getState(roomId);
             if (data && data.players) {
                 setPlayers(data.players.filter(p => p)); // Filter nulls
             }
