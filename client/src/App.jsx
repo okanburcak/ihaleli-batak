@@ -620,10 +620,10 @@ function App() {
                 {/* Admin Panel */}
                 {showAdmin && <AdminPanel roomId={currentRoomId} onClose={() => setShowAdmin(false)} />}
 
-                {/* Super Admin Dashboard */}
-                {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}
+                {/* Super Admin Dashboard - MOVED TO ROOT */}
 
                 {/* Error Toast */}
+
                 {errorMsg && (
                     <div className="absolute top-20 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
                         {errorMsg}
@@ -730,6 +730,7 @@ function App() {
     return (
         <div>
             {renderContent()}
+            {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}
         </div>
     )
 }
