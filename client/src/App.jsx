@@ -49,51 +49,49 @@ function App() {
     const renderHand = () => {
         if (!myHand || myHand.length === 0) return null;
 
-        // Dynamic Overlap Calculation
-        // Max width for hand approx screen width - padding
-        const maxHandWidth = Math.min(pageWidth - 20, 800);
-        const cardWidth = isMobile ? 80 : 96; // Approximate width of a card (w-20 is 5rem=80px, w-24 is 6rem=96px)
-
-        let overlap = -30; // Default overlap
-
-        if (myHand.length > 1) {
-            const totalCardWidth = myHand.length * cardWidth;
-            if (totalCardWidth > maxHandWidth) {
-                // We need to compress
-                // Total width = cardWidth + (n-1) * (cardWidth + overlap)
-                // maxHandWidth = cardWidth + (n-1) * (cardWidth + overlap)
-                // (maxHandWidth - cardWidth) / (n-1) = cardWidth + overlap
-                // overlap = ((maxHandWidth - cardWidth) / (n-1)) - cardWidth
-                overlap = ((maxHandWidth - cardWidth) / (myHand.length - 1)) - cardWidth;
-            } else {
-                overlap = -30; // Standard comfortable overlap if space allows
-            }
+        let rows = [];
+        // User Rule: "keep 2 lines until the player has 6 cards. then you go to 1 line."
+        if (isMobile && myHand.length > 6) {
+            const mid = Math.ceil(myHand.length / 2);
+            rows.push(myHand.slice(0, mid)); // Back Row
+            rows.push(myHand.slice(mid));    // Front Row
+        } else {
+            rows.push(myHand);
         }
 
         return (
-            <div className="flex items-end justify-center h-full pb-2 pointer-events-none w-full">
-                <div className="flex items-end justify-center pointer-events-auto transition-all duration-300">
-                    {myHand.map((card, idx) => (
-                        <div
-                            key={`${card.suit}-${card.rank}-${idx}`}
-                            className={`
-                                relative
-                                transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
-                            `}
-                            style={{
-                                zIndex: idx,
-                                marginLeft: idx === 0 ? 0 : `${overlap}px`
-                            }}
-                        >
-                            <Card
-                                card={card}
-                                isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
-                                onClick={playCard}
-                                showGomu={true}
-                            />
-                        </div>
-                    ))}
-                </div>
+            <div className={`flex flex-col items-center justify-end h-full pb-2 pointer-events-none w-full px-2 ${rows.length > 1 ? '-mb-4' : ''}`}>
+                {rows.map((rowCards, rowIdx) => (
+                    <div
+                        key={rowIdx}
+                        className={`
+                            flex items-end justify-center pointer-events-auto transition-all duration-300
+                            ${rows.length > 1 ? 'scale-90 opacity-90' : ''} 
+                            ${rowIdx === 0 && rows.length > 1 ? '-mb-20 -translate-y-12 z-10' : 'z-20'}
+                        `}
+                    >
+                        {rowCards.map((card, idx) => (
+                            <div
+                                key={`${card.suit}-${card.rank}-${idx}`}
+                                className={`
+                                    relative
+                                    transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
+                                    ${idx !== 0 ? '-ml-2' : ''}
+                                `}
+                                style={{
+                                    zIndex: idx + (rowIdx * 20)
+                                }}
+                            >
+                                <Card
+                                    card={card}
+                                    isPlayable={isMyTurn && roomState?.state === 'PLAYING'}
+                                    onClick={playCard}
+                                    showGomu={true}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ))}
             </div>
         );
     };
