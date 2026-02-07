@@ -14,6 +14,7 @@ export const SoundProvider = ({ children }) => {
         turn: '/sounds/turn.ogg',
         win: '/sounds/win.ogg',
         hurry: '/sounds/hurry.mp4',
+        hadi: '/sounds/hadi.ogg',
         shame: '/sounds/shame.mp4',
     };
 
@@ -28,7 +29,14 @@ export const SoundProvider = ({ children }) => {
 
     const playSound = (name) => {
         if (isMuted) return;
-        const audio = audioRefs.current[name];
+
+        let target = name;
+        if (name === 'hurry') {
+            // Randomly choose between hurry and hadi
+            target = Math.random() < 0.5 ? 'hurry' : 'hadi';
+        }
+
+        const audio = audioRefs.current[target];
         if (audio) {
             audio.currentTime = 0; // Reset to start
             audio.play().catch(e => console.log("Audio play failed (interaction needed?):", e));
