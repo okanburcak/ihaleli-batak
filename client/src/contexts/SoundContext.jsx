@@ -30,13 +30,7 @@ export const SoundProvider = ({ children }) => {
     const playSound = (name) => {
         if (isMuted) return;
 
-        let target = name;
-        if (name === 'hurry') {
-            // Randomly choose between hurry and hadi
-            target = Math.random() < 0.5 ? 'hurry' : 'hadi';
-        }
-
-        const audio = audioRefs.current[target];
+        const audio = audioRefs.current[name];
         if (audio) {
             audio.currentTime = 0; // Reset to start
             audio.play().catch(e => console.log("Audio play failed (interaction needed?):", e));

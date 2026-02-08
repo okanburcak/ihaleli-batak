@@ -139,6 +139,7 @@ function App() {
             const { id, type, from } = roomState.lastSound;
             if (id !== lastPlayedSoundId.current) {
                 if (type === 'hurry') playSound('hurry');
+                if (type === 'hadi') playSound('hadi');
                 if (type === 'shame') playSound('shame');
 
                 lastPlayedSoundId.current = id;
@@ -586,7 +587,10 @@ function App() {
                         </button>
                         {/* Sound Buttons */}
                         <button
-                            onClick={() => api.broadcastSound(currentRoomId, 'hurry')}
+                            onClick={() => {
+                                const type = Math.random() < 0.5 ? 'hurry' : 'hadi';
+                                api.broadcastSound(currentRoomId, type);
+                            }}
                             className="text-xs bg-yellow-600/50 hover:bg-yellow-600 px-2 py-1 rounded text-white border border-yellow-500"
                         >
                             HADİ!
