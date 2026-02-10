@@ -16,9 +16,20 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
-          # Source user profile to load NVM/PATH as if logging in
-          source ~/.profile
-          source ~/.bashrc
+        script: |
+          # Load NVM for root user (or standard user)
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          # Fallback: Add known node path if NVM fails (based on user output)
+          export PATH="/root/.nvm/versions/node/v20.17.0/bin:$PATH"
+
+          # Verify npm is reachable
+          if ! command -v npm &> /dev/null
+          then
+              echo "❌ npm not found. Please check NVM installation on server."
+              exit 1
+          fi
           
           echo "🚀 Starting deployment..."
           
