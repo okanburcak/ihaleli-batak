@@ -16,8 +16,20 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
-          set -e
+        script: |
+          # Source user profile to load NVM/PATH as if logging in
+          source ~/.profile
+          source ~/.bashrc
+          
           echo "🚀 Starting deployment..."
+          
+          # Check if npm exists now
+          if ! command -v npm &> /dev/null
+          then
+              echo "❌ npm could not be found even after loading profiles."
+              echo "PATH is: $PATH"
+              exit 1
+          fi
           
           # Navigate to project
           cd /opt/ihaleli-batak
