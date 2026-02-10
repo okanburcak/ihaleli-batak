@@ -16,7 +16,6 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: ${{ secrets.VPS_PORT || 22 }}
         script: |
-        script: |
           # Source user profile to load NVM/PATH as if logging in
           source ~/.profile
           source ~/.bashrc
