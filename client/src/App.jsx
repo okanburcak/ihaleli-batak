@@ -306,6 +306,17 @@ function App() {
         fetchState();
     }
 
+    const restartGame = async () => {
+        if (!confirm('Oyunu yeniden başlatmak istediğinize emin misiniz? Tüm skorlar sıfırlanacak.')) return;
+        playSound('click');
+        const res = await api.restartGame(currentRoomId);
+        if (res.error) {
+            alert(res.error);
+        } else {
+            fetchState();
+        }
+    }
+
     const handleLeave = async () => {
         if (!confirm('Masadan ayrılmak istediğinize emin misiniz?')) return;
 
@@ -732,6 +743,50 @@ function App() {
                 <div className="absolute bottom-0 w-full h-40 md:h-56 z-40 pointer-events-none">
                     {renderHand()}
                 </div>
+
+                {/* GAME OVER UI */}
+                {roomState?.state === 'GAME_OVER' && (
+                    <div className="absolute inset-0 bg-black/90 z-[70] flex flex-col items-center justify-center p-4">
+                        <h1 className="text-4xl md:text-6xl font-bold text-yellow-500 mb-8 animate-bounce">OYUN BİTTİ!</h1>
+
+                        <div className="bg-stone-800 p-6 rounded-xl border border-yellow-600 shadow-2xl w-full max-w-lg mb-8">
+                            <h2 className="text-2xl text-white mb-4 border-b border-stone-600 pb-2">Sonuçlar</h2>
+                            <div className="space-y-3">
+                                {Object.entries(roomState.scores)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([pid, score], idx) => {
+                                        const p = roomState.players.find(pl => pl?.id === pid);
+                                        return (
+                                            <div key={pid} className="flex justify-between items-center text-white text-lg">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-yellow-500">#{idx + 1}</span>
+                                                    <span>{p?.name || 'Unknown'}</span>
+                                                </div>
+                                                <span className="font-mono font-bold">{score}</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4 w-full max-w-sm">
+                            {roomState.me?.isAdmin && (
+                                <button
+                                    onClick={restartGame}
+                                    className="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold text-xl rounded-xl shadow-lg animate-pulse"
+                                >
+                                    YENİ OYUN BAŞLAT
+                                </button>
+                            )}
+                            <button
+                                onClick={handleLeave}
+                                className="w-full py-4 bg-gray-600 hover:bg-gray-500 text-white font-bold text-xl rounded-xl shadow-lg"
+                            >
+                                MASADAN AYRIL
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };

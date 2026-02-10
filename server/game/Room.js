@@ -431,6 +431,19 @@ class Room {
 
         // Validation logic - reusing logic from original but simplified adapted
         if (!this.isValidMove(hand, card, this.currentTrick)) {
+            console.log(`[INVALID MOVE] Player: ${playerId} (${this.seats[pIndex]?.name})`);
+            console.log(`[INVALID MOVE] Card Attempted: ${card.suit}${card.rank}`);
+            console.log(`[INVALID MOVE] Current Trick:`, JSON.stringify(this.currentTrick.map(t => `${t.card.suit}${t.card.rank}`)));
+            console.log(`[INVALID MOVE] Trump: ${this.trump}`);
+            console.log(`[INVALID MOVE] Player Hand:`, JSON.stringify(hand.map(c => `${c.suit}${c.rank}`)));
+            // Extended logging as requested: All players' hands
+            this.seats.forEach((seat, idx) => {
+                const h = this.hands[idx];
+                if (seat && h) {
+                    console.log(`[INVALID MOVE] ${seat.name} Hand:`, JSON.stringify(h.map(c => `${c.suit}${c.rank}`)));
+                }
+            });
+
             return { error: 'Invalid Move' };
         }
 
@@ -577,6 +590,15 @@ class Room {
                 this.endRound();
             }
         }, 2000);
+
+        // winnerIndex is 0-3 relative to the trick array order? No, wait.
+        // In resolveTrick logic:
+        // let winnerIndex = 0; // Relative to trick array (0..3)
+        // ...
+        // const winnerId = this.currentTrick[winnerIndex].playerId;
+
+        console.log(`[TRICK COMPLETED] Winner: ${this.players.find(p => p.id === winnerId)?.name} (${winnerId})`);
+        console.log(`[TRICK COMPLETED] Cards:`, JSON.stringify(this.currentTrick.map(t => `${t.card.suit}${t.card.rank} (${this.players.find(p => p.id === t.playerId)?.name})`)));
     }
 
     endRound() {
@@ -650,6 +672,32 @@ class Room {
         this.dealerIndex = (this.dealerIndex + 1) % 4;
         this.startGame();
         return { success: true, message: 'El bozuldu, yeniden dağıtılıyor...' };
+    }
+
+    restartGame() {
+        // Reset Scores
+        this.scores = {};
+        this.seats.forEach(p => {
+            if (p) this.scores[p.id] = 0;
+        });
+
+        // Reset Round State
+        this.roundScores = {};
+        this.bids = {};
+        this.currentBidder = null;
+        this.winningBid = { playerId: null, amount: 0 };
+        this.trump = null;
+        this.kitty = [];
+        this.buriedCards = [];
+        this.currentTrick = [];
+        this.hands = [];
+
+        // Reset Game State
+        this.state = 'WAITING';
+        this.dealerIndex = 0;
+        this.firstHand = true;
+
+        return { success: true, message: 'Game restarted.' };
     }
 }
 

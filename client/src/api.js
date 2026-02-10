@@ -127,6 +127,14 @@ export const api = {
         return res.json();
     },
 
+    restartGame: async (roomId) => {
+        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/restart`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return res.json();
+    },
+
     // Admin API
     adminListRooms: async () => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getHeaders() });
