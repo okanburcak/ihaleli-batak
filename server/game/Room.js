@@ -44,6 +44,47 @@ class Room {
         this.pendingStateChange = null;
     }
 
+    isValidCard(card) {
+        const VALID_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        const VALID_SUITS = ['♠', '♥', '♦', '♣'];
+        if (!card) return false;
+        if (!VALID_SUITS.includes(card.suit)) return false;
+        if (!VALID_RANKS.includes(card.rank)) return false;
+        return true;
+    }
+
+    validateDeckIntegrity() {
+        const allCards = [];
+        this.hands.forEach(hand => allCards.push(...hand));
+        allCards.push(...this.kitty);
+        allCards.push(...this.buriedCards);
+        this.currentTrick.forEach(p => allCards.push(p.card));
+
+        const seen = new Set();
+        const duplicates = [];
+        const invalid = [];
+
+        allCards.forEach(c => {
+            if (!this.isValidCard(c)) {
+                invalid.push(c);
+            }
+            const key = `${c.suit}${c.rank}`;
+            if (seen.has(key)) {
+                duplicates.push(key);
+            }
+            seen.add(key);
+        });
+
+        if (duplicates.length > 0) {
+            console.error(`CRITICAL [Room ${this.roomId}]: Duplicate cards found:`, duplicates);
+        }
+        if (invalid.length > 0) {
+            console.error(`CRITICAL [Room ${this.roomId}]: Invalid cards found:`, invalid);
+        }
+
+        return { valid: duplicates.length === 0 && invalid.length === 0, duplicates, invalid };
+    }
+
     generateCode() {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
@@ -290,6 +331,8 @@ class Room {
         this.kitty = kitty;
         this.buriedCards = [];
 
+        this.validateDeckIntegrity();
+
         this.roundScores = {};
         this.seats.forEach(p => {
             if (p) this.roundScores[p.id] = 0;
@@ -400,6 +443,8 @@ class Room {
         this.hands[pIndex] = [...currentHand, ...markedKitty];
         this.deck.sortHand(this.hands[pIndex]); // Sort helper
 
+        this.validateDeckIntegrity();
+
         this.state = 'PLAYING';
         return { success: true };
     }
@@ -418,6 +463,12 @@ class Room {
 
     playCard(playerId, card) {
         if (this.state !== 'PLAYING') return { error: 'Not playing' };
+
+        // Input Validation
+        if (!this.isValidCard(card)) {
+            console.error(`[INVALID INPUT] Player ${playerId} sent invalid card:`, card);
+            return { error: 'Invalid card data' };
+        }
 
         // Prevent playing if resolving previous trick
         if (this.currentTrick.length >= 4) return { error: 'Trick resolving, please wait' };
