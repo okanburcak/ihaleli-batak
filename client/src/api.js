@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 let playerId = null;
-let adminSecret = null;
+
 
 export const setPlayerId = (id) => {
     playerId = id;
@@ -15,9 +15,7 @@ export const getPlayerId = () => {
     return playerId;
 };
 
-export const setAdminSecret = (secret) => {
-    adminSecret = secret;
-};
+
 
 const getHeaders = () => {
     const headers = {
@@ -31,13 +29,9 @@ const getHeaders = () => {
 };
 
 const getAdminHeaders = () => {
-    const headers = {
+    return {
         'Content-Type': 'application/json'
     };
-    if (adminSecret) {
-        headers['x-admin-secret'] = adminSecret;
-    }
-    return headers;
 };
 
 export const api = {
