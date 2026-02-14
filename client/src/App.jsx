@@ -165,7 +165,7 @@ function App() {
         const storedRoomId = localStorage.getItem('batak_room_id');
 
         if (storedPlayerId && storedRoomId) {
-            setMyPlayerId(storedPlayerId);
+            // Don't set myPlayerId to the token; updateState will set it from data.me.id
             setCurrentRoomId(storedRoomId);
 
             // Try to resume
@@ -234,7 +234,6 @@ function App() {
 
         if (data.me) {
             setMyPlayerId(data.me.id);
-            if (data.me.id !== getPlayerId()) setPlayerId(data.me.id);
         }
 
         if (data.state === 'BIDDING' && data.currentTurn === data.me?.id) {
@@ -382,7 +381,7 @@ function App() {
             const res = await api.joinRoom(targetRoomId, playerName, joinCode, seatIdx);
             if (res.success) {
                 setPlayerId(res.token);
-                setMyPlayerId(res.token);
+                setMyPlayerId(res.playerId);
                 setCurrentRoomId(targetRoomId);
                 localStorage.setItem('batak_room_id', targetRoomId);
 

@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 
 const Room = require('./game/Room');
 
@@ -8,6 +9,12 @@ app.use(express.json());
 
 const PORT = 3000;
 
+// Admin secret: use env variable or generate a random one for dev
+const ADMIN_SECRET = process.env.ADMIN_SECRET || crypto.randomUUID();
+if (!process.env.ADMIN_SECRET) {
+    console.log(`[DEV] Generated ADMIN_SECRET: ${ADMIN_SECRET}`);
+}
+
 // Game State Storage
 const rooms = {};
 
@@ -16,15 +23,46 @@ const getRoom = (roomId, winningScore = 51) => {
     if (!rooms[roomId]) {
         rooms[roomId] = new Room(roomId, winningScore);
     }
-    return rooms[roomId]; // Note: If room already exists, ignored score is correct behavior for 'get'. 
-    // But 'create' endpoint calls this.
+    return rooms[roomId];
+};
+
+// Middleware: resolve x-player-id token to public player ID
+const resolvePlayer = (req, res, next) => {
+    const token = req.headers['x-player-id'];
+    const room = rooms[req.params.roomId];
+    if (!token) {
+        req.playerId = null;
+        return next();
+    }
+    if (!room) {
+        req.playerId = null;
+        return next();
+    }
+    req.playerId = room.resolveToken(token);
+    return next();
+};
+
+// Middleware: require valid player token
+const requirePlayer = (req, res, next) => {
+    if (!req.playerId) {
+        return res.status(401).json({ error: 'Invalid or missing player token' });
+    }
+    return next();
+};
+
+// Middleware: require admin secret
+const requireAdminSecret = (req, res, next) => {
+    const secret = req.headers['x-admin-secret'];
+    if (secret !== ADMIN_SECRET) {
+        return res.status(401).json({ error: 'Invalid admin secret' });
+    }
+    return next();
 };
 
 // --- Routes ---
 
 // List Rooms (Lobby)
 app.get('/api/rooms', (req, res) => {
-    // Return list of rooms with occupancy info
     const roomList = Object.keys(rooms).map(id => {
         const r = rooms[id];
         return {
@@ -33,7 +71,7 @@ app.get('/api/rooms', (req, res) => {
             seats: r.seats.map(s => s ? { name: s.name, connected: s.connected } : null),
             state: r.state,
             winningScore: r.winningScore,
-            lastSeen: Date.now() // Placeholder
+            lastSeen: Date.now()
         };
     });
     res.json(roomList);
@@ -41,17 +79,16 @@ app.get('/api/rooms', (req, res) => {
 
 // Create Room
 app.post('/api/rooms', (req, res) => {
-    // Generate Random 6 digit Room ID
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
     const { winningScore } = req.body;
-    const room = getRoom(roomId, winningScore); // This creates it
+    const room = getRoom(roomId, winningScore);
     res.json({ roomId });
 });
 
 // Join Room
 app.post('/api/rooms/:roomId/join', (req, res) => {
     const { roomId } = req.params;
-    const { name, code, seatIndex } = req.body; // Added seatIndex
+    const { name, code, seatIndex } = req.body;
 
     const room = getRoom(roomId);
     const result = room.addPlayer(name, code, seatIndex);
@@ -64,16 +101,13 @@ app.post('/api/rooms/:roomId/join', (req, res) => {
 });
 
 // Leave Room
-app.post('/api/rooms/:roomId/leave', (req, res) => {
+app.post('/api/rooms/:roomId/leave', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.removePlayer(playerId);
-    // Even if error (e.g. not found), we can consider it a success for the client
-    // or return the error. Let's return the result.
+    const result = room.removePlayer(req.playerId);
     if (result.success) {
         res.json(result);
     } else {
@@ -81,37 +115,26 @@ app.post('/api/rooms/:roomId/leave', (req, res) => {
     }
 });
 
-// Get State (Polling Endpoint)
-app.get('/api/rooms/:roomId/state', (req, res) => {
+// Get State (Polling Endpoint) - requires authentication
+app.get('/api/rooms/:roomId/state', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
-    const playerId = req.headers['x-player-id']; // Client sends their token/ID
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    if (!playerId) {
-        // Public State only (if needed, or error)
-        return res.json(room.getPublicState());
-    }
-
-    const state = room.getPlayerState(playerId);
+    const state = room.getPlayerState(req.playerId);
     if (!state) return res.status(403).json({ error: 'Player not in room' });
 
     res.json(state);
 });
 
 // Start Game (Admin)
-app.post('/api/rooms/:roomId/start', (req, res) => {
+app.post('/api/rooms/:roomId/start', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    // Auth check: Is it admin?
-    // Simplified: Any player in the room implies "someone in the room triggered it"
-    // Better: Check player ID from header if it is admin
-    const playerId = req.headers['x-player-id'];
-    const player = room.players.find(p => p.id === playerId);
-
+    const player = room.players.find(p => p.id === req.playerId);
     if (!player || !player.isAdmin) {
         return res.status(403).json({ error: 'Only Admin can start' });
     }
@@ -121,96 +144,88 @@ app.post('/api/rooms/:roomId/start', (req, res) => {
 });
 
 // Bid
-app.post('/api/rooms/:roomId/bid', (req, res) => {
+app.post('/api/rooms/:roomId/bid', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
     const { amount } = req.body;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.bid(playerId, amount);
+    const result = room.bid(req.playerId, amount);
     if (result.error) return res.status(400).json(result);
     res.json(result);
 });
 
 // Exchange
-app.post('/api/rooms/:roomId/exchange', (req, res) => {
+app.post('/api/rooms/:roomId/exchange', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
     const { cards } = req.body;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.exchangeCards(playerId, cards);
+    const result = room.exchangeCards(req.playerId, cards);
     if (result.error) return res.status(400).json(result);
     res.json(result);
 });
 
 // Select Trump
-app.post('/api/rooms/:roomId/trump', (req, res) => {
+app.post('/api/rooms/:roomId/trump', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
     const { suit } = req.body;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.selectTrump(playerId, suit);
+    const result = room.selectTrump(req.playerId, suit);
     if (result.error) return res.status(400).json(result);
     res.json(result);
 });
 
 // Play Card
-app.post('/api/rooms/:roomId/play', (req, res) => {
+app.post('/api/rooms/:roomId/play', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
     const { card } = req.body;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.playCard(playerId, card);
+    const result = room.playCard(req.playerId, card);
     if (result.error) return res.status(400).json(result);
     res.json(result);
 });
 
 // Broadcast Sound
-app.post('/api/rooms/:roomId/sound', (req, res) => {
+app.post('/api/rooms/:roomId/sound', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
-    const { type } = req.body; // 'hurry', 'shame'
-    const playerId = req.headers['x-player-id'];
+    const { type } = req.body;
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.broadcastSound(type, playerId);
+    const result = room.broadcastSound(type, req.playerId);
     res.json(result);
 });
 
 // Redeal (Eli Boz)
-app.post('/api/rooms/:roomId/redeal', (req, res) => {
+app.post('/api/rooms/:roomId/redeal', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    const result = room.requestRedeal(playerId);
+    const result = room.requestRedeal(req.playerId);
     res.json(result);
 });
 
 // Restart Game (Admin)
-app.post('/api/rooms/:roomId/restart', (req, res) => {
+app.post('/api/rooms/:roomId/restart', resolvePlayer, requirePlayer, (req, res) => {
     const { roomId } = req.params;
-    const playerId = req.headers['x-player-id'];
 
     const room = rooms[roomId];
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
-    // Auth check
-    const player = room.players.find(p => p.id === playerId);
+    const player = room.players.find(p => p.id === req.playerId);
     if (!player || !player.isAdmin) {
         return res.status(403).json({ error: 'Only Admin can restart' });
     }
@@ -219,68 +234,27 @@ app.post('/api/rooms/:roomId/restart', (req, res) => {
     res.json(result);
 });
 
-
-// Debug Endpoint
-app.get('/api/debug/:roomId', (req, res) => {
-    const { roomId } = req.params;
-    const room = rooms[roomId];
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-    res.json({
-        ...room,
-        players: room.players,
-        hands: room.hands,
-        deck: 'hidden'
-    });
-});
-
-// Force End Round
-app.post('/api/debug/:roomId/end-round', (req, res) => {
-    const { roomId } = req.params;
-    const room = rooms[roomId];
-    if (room) {
-        room.endRound();
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Room not found' });
-    }
-});
-
-// Set Scores
-app.post('/api/debug/:roomId/set-scores', (req, res) => {
-    const { roomId } = req.params;
-    const { scores } = req.body;
-    const room = rooms[roomId];
-    if (room) {
-        room.scores = scores;
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ error: 'Room not found' });
-    }
-});
-
-// --- Super Admin Routes ---
+// --- Super Admin Routes (protected by admin secret) ---
 
 // List all rooms
-app.get('/api/admin/rooms', (req, res) => {
+app.get('/api/admin/rooms', requireAdminSecret, (req, res) => {
     const roomList = Object.keys(rooms).map(id => {
         const r = rooms[id];
         return {
             id: r.roomId,
             playerCount: r.players.filter(p => !!p).length,
             state: r.state,
-            players: r.players.filter(p => !!p).map(p => ({ id: p.id, name: p.name, isAdmin: p.isAdmin })),
-            lastSeen: Date.now() // Could be improved with actual last activity
+            players: r.players.filter(p => !!p).map(p => ({ name: p.name, isAdmin: p.isAdmin })),
+            lastSeen: Date.now()
         };
     });
     res.json(roomList);
 });
 
-// Reset Room (Clear state but keep players if possible, or full wipe?)
-// "Reset" usually means restart game. "Delete" means remove from memory.
-app.post('/api/admin/rooms/:roomId/reset', (req, res) => {
+// Reset Room
+app.post('/api/admin/rooms/:roomId/reset', requireAdminSecret, (req, res) => {
     const { roomId } = req.params;
     if (rooms[roomId]) {
-        // Create new room instance to wipe state
         rooms[roomId] = new Room(roomId);
         res.json({ success: true, message: 'Room reset successfully' });
     } else {
@@ -289,7 +263,7 @@ app.post('/api/admin/rooms/:roomId/reset', (req, res) => {
 });
 
 // Delete Room
-app.delete('/api/admin/rooms/:roomId', (req, res) => {
+app.delete('/api/admin/rooms/:roomId', requireAdminSecret, (req, res) => {
     const { roomId } = req.params;
     if (rooms[roomId]) {
         delete rooms[roomId];
