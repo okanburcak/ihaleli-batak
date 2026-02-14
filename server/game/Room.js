@@ -36,8 +36,6 @@ class Room {
         this.firstHand = true;
         this.roundBidStarterIndex = undefined;
 
-        // Secure Joining
-        this.seatCodes = {}; // { 1: '1234', ... }
         this.seats = [null, null, null, null]; // [PlayerObj, ...]
 
         // Helper to track timeouts (e.g. end of trick pause)
@@ -48,14 +46,21 @@ class Room {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
+    resolveToken(token) {
+        if (!token) return null;
+        const player = this.players.find(p => p.token === token);
+        return player ? player.id : null;
+    }
+
     // Returns { success, token, playerId, message }
     addPlayer(name, code, targetSeatIndex = -1) {
         // 1. First Player -> Admin (Create Room effectively)
         if (this.seats.every(s => s === null)) {
+            const id = crypto.randomUUID();
             const token = crypto.randomUUID();
             const player = {
-                id: token,
-                token: token, // Used for authentication
+                id: id,
+                token: token, // Used for authentication (never exposed publicly)
                 name: name || `Admin`,
                 seatIndex: 0,
                 isAdmin: true,
@@ -66,10 +71,7 @@ class Room {
             this.players.push(player);
             this.scores[player.id] = 0;
 
-            // Codes no longer used
-            this.seatCodes = {};
-
-            return { success: true, token, playerId: token, message: 'Room created. You are Admin.' };
+            return { success: true, token, playerId: id, message: 'Room created. You are Admin.' };
         }
 
         // 2. Validate Seat (or Spectator)
@@ -91,9 +93,10 @@ class Room {
         // 3. Join or Reconnect
         // If Spectator, we just add them to players list.
         if (isSpectator) {
+            const id = crypto.randomUUID();
             const token = crypto.randomUUID();
             const newPlayer = {
-                id: token,
+                id: id,
                 token: token,
                 name: name || `Izleyici`,
                 seatIndex: -1, // -1 or -2 to indicate spectator
@@ -103,7 +106,7 @@ class Room {
                 isSpectator: true
             };
             this.players.push(newPlayer);
-            return { success: true, token, playerId: token, message: 'Joined as Spectator.' };
+            return { success: true, token, playerId: id, message: 'Joined as Spectator.' };
         }
 
         const existingPlayer = this.seats[seatToJoin];
@@ -120,13 +123,14 @@ class Room {
             }
 
             // Allow takeover of disconnected player
+            const id = crypto.randomUUID();
             const token = crypto.randomUUID();
             // Remove old player entry from players list
             this.players = this.players.filter(p => p.id !== existingPlayer.id);
 
             const newPlayer = {
                 ...existingPlayer,
-                id: token, // New ID/Token
+                id: id,
                 token: token,
                 name: name || existingPlayer.name,
                 connected: true,
@@ -147,12 +151,13 @@ class Room {
                 delete this.roundScores[existingPlayer.id];
             }
 
-            return { success: true, token, playerId: token, message: 'Reconnected.' };
+            return { success: true, token, playerId: id, message: 'Reconnected.' };
         } else {
             // New Join to Empty Seat
+            const id = crypto.randomUUID();
             const token = crypto.randomUUID();
             const newPlayer = {
-                id: token,
+                id: id,
                 token: token,
                 name: name || `Player ${seatToJoin + 1}`,
                 seatIndex: seatToJoin,
@@ -165,7 +170,7 @@ class Room {
             this.players.push(newPlayer);
             this.scores[newPlayer.id] = 0;
 
-            return { success: true, token, playerId: token, message: 'Joined.' };
+            return { success: true, token, playerId: id, message: 'Joined.' };
         }
     }
     // Returns { success, message }
@@ -238,7 +243,6 @@ class Room {
                     isAdmin: p.isAdmin
                 };
             }),
-            seatCodes: this.seatCodes,
             state: this.state,
             currentTurn: this.seats[this.turnIndex]?.id,
             winningBid: this.winningBid,
@@ -248,7 +252,6 @@ class Room {
             scores: this.scores,
             bids: this.bids,
 
-            activeBidders: this.activeBidders,
             activeBidders: this.activeBidders,
             pendingStateChange: this.pendingStateChange,
             lastSound: this.lastSound

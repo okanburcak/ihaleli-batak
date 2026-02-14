@@ -1,6 +1,7 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 let playerId = null;
+let adminSecret = null;
 
 export const setPlayerId = (id) => {
     playerId = id;
@@ -14,6 +15,10 @@ export const getPlayerId = () => {
     return playerId;
 };
 
+export const setAdminSecret = (secret) => {
+    adminSecret = secret;
+};
+
 const getHeaders = () => {
     const headers = {
         'Content-Type': 'application/json'
@@ -21,6 +26,16 @@ const getHeaders = () => {
     const pid = getPlayerId();
     if (pid) {
         headers['x-player-id'] = pid;
+    }
+    return headers;
+};
+
+const getAdminHeaders = () => {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (adminSecret) {
+        headers['x-admin-secret'] = adminSecret;
     }
     return headers;
 };
@@ -116,7 +131,6 @@ export const api = {
             body: JSON.stringify({ type })
         });
         return res.json();
-        return res.json();
     },
 
     requestRedeal: async (roomId) => {
@@ -135,16 +149,16 @@ export const api = {
         return res.json();
     },
 
-    // Admin API
+    // Admin API (requires admin secret)
     adminListRooms: async () => {
-        const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getHeaders() });
+        const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getAdminHeaders() });
         return res.json();
     },
 
     adminResetRoom: async (roomId) => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms/${roomId}/reset`, {
             method: 'POST',
-            headers: getHeaders()
+            headers: getAdminHeaders()
         });
         return res.json();
     },
@@ -152,7 +166,7 @@ export const api = {
     adminDeleteRoom: async (roomId) => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms/${roomId}`, {
             method: 'DELETE',
-            headers: getHeaders()
+            headers: getAdminHeaders()
         });
         return res.json();
     }
