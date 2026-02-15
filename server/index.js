@@ -1,6 +1,12 @@
 const express = require('express');
 
+const Room = require('./game/Room');
 
+const app = express();
+
+app.use(express.json());
+
+const PORT = 3000;
 // Game State Storage
 const rooms = {};
 
@@ -59,9 +65,16 @@ app.get('/api/rooms', (req, res) => {
 // Create Room
 app.post('/api/rooms', (req, res) => {
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`[CREATE ROOM] Request for room ${roomId}, winningScore: ${req.body.winningScore}`);
     const { winningScore } = req.body;
-    const room = getRoom(roomId, winningScore);
-    res.json({ roomId });
+    try {
+        const room = getRoom(roomId, winningScore);
+        console.log(`[CREATE ROOM] Room ${roomId} created.`);
+        res.json({ roomId });
+    } catch (e) {
+        console.error(`[CREATE ROOM] Error creating room ${roomId}:`, e);
+        res.status(500).json({ error: 'Failed to create room' });
+    }
 });
 
 // Join Room

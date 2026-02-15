@@ -58,6 +58,11 @@ export const api = {
             headers: getHeaders(),
             body: JSON.stringify({ winningScore })
         });
+        if (!res.ok) {
+            const err = await res.json();
+            console.error("Create room failed", err);
+            throw new Error(err.message || "Failed to create room");
+        }
         return res.json();
     },
 

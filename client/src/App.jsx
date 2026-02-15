@@ -97,7 +97,8 @@ function App() {
     };
 
     useEffect(() => {
-        if (window.location.pathname === '/admin') {
+        const params = new URLSearchParams(window.location.search);
+        if (window.location.pathname === '/admin' || params.get('admin') === 'true') {
             setShowSuperAdmin(true);
         }
     }, []);
