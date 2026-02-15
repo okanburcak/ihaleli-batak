@@ -1,19 +1,5 @@
 const express = require('express');
-const crypto = require('crypto');
 
-const Room = require('./game/Room');
-
-const app = express();
-
-app.use(express.json());
-
-const PORT = 3000;
-
-// Admin secret: use env variable or generate a random one for dev
-const ADMIN_SECRET = process.env.ADMIN_SECRET || crypto.randomUUID();
-if (!process.env.ADMIN_SECRET) {
-    console.log(`[DEV] Generated ADMIN_SECRET: ${ADMIN_SECRET}`);
-}
 
 // Game State Storage
 const rooms = {};
@@ -50,14 +36,7 @@ const requirePlayer = (req, res, next) => {
     return next();
 };
 
-// Middleware: require admin secret
-const requireAdminSecret = (req, res, next) => {
-    const secret = req.headers['x-admin-secret'];
-    if (secret !== ADMIN_SECRET) {
-        return res.status(401).json({ error: 'Invalid admin secret' });
-    }
-    return next();
-};
+
 
 // --- Routes ---
 
@@ -237,7 +216,7 @@ app.post('/api/rooms/:roomId/restart', resolvePlayer, requirePlayer, (req, res) 
 // --- Super Admin Routes (protected by admin secret) ---
 
 // List all rooms
-app.get('/api/admin/rooms', requireAdminSecret, (req, res) => {
+app.get('/api/admin/rooms', (req, res) => {
     const roomList = Object.keys(rooms).map(id => {
         const r = rooms[id];
         return {
@@ -252,7 +231,7 @@ app.get('/api/admin/rooms', requireAdminSecret, (req, res) => {
 });
 
 // Reset Room
-app.post('/api/admin/rooms/:roomId/reset', requireAdminSecret, (req, res) => {
+app.post('/api/admin/rooms/:roomId/reset', (req, res) => {
     const { roomId } = req.params;
     if (rooms[roomId]) {
         rooms[roomId] = new Room(roomId);
@@ -263,7 +242,7 @@ app.post('/api/admin/rooms/:roomId/reset', requireAdminSecret, (req, res) => {
 });
 
 // Delete Room
-app.delete('/api/admin/rooms/:roomId', requireAdminSecret, (req, res) => {
+app.delete('/api/admin/rooms/:roomId', (req, res) => {
     const { roomId } = req.params;
     if (rooms[roomId]) {
         delete rooms[roomId];
