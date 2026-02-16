@@ -51,7 +51,7 @@ function App() {
 
         let rows = [];
         // User Rule: "keep 2 lines until the player has 6 cards. then you go to 1 line."
-        if (isMobile && myHand.length > 6) {
+        if (isMobile && myHand.length >= 6) {
             const mid = Math.ceil(myHand.length / 2);
             rows.push(myHand.slice(0, mid)); // Back Row
             rows.push(myHand.slice(mid));    // Front Row

@@ -446,7 +446,16 @@ class Room {
         this.hands[pIndex] = [...currentHand, ...markedKitty];
         this.deck.sortHand(this.hands[pIndex]); // Sort helper
 
-        this.validateDeckIntegrity();
+        // Critical Fix: Clear kitty so cards are not duplicated in room state
+        this.kitty = [];
+        // Critical Fix: Store buried cards
+        this.buriedCards = buried;
+
+        const integrity = this.validateDeckIntegrity();
+        if (!integrity.valid) {
+            console.error(`[CRITICAL] Deck Integrity Failed after exchange! Room: ${this.roomId}`, integrity);
+            // Force recovery? Or just let it fail loud?
+        }
 
         this.state = 'PLAYING';
         return { success: true };
