@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 
-const SIGNALING_SERVER_URL = 'http://localhost:3000'; // Adjust if deployed
+const SIGNALING_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 const VoiceChat = ({ roomId, myPlayerId }) => {
     const [peers, setPeers] = useState([]); // [{ userId, stream }]
