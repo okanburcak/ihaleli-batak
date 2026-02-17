@@ -6,12 +6,7 @@ const Room = require('./game/Room');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Allow all origins for simplicity (or configure strictly for prod)
-        methods: ["GET", "POST"]
-    }
-});
+const io = new Server(server);
 
 app.use(express.json());
 
