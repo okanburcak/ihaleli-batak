@@ -5,6 +5,7 @@ import GameBoard from './components/GameBoard'
 import Card from './components/Card'
 import AdminPanel from './components/AdminPanel'
 import AdminDashboard from './components/AdminDashboard'
+import VoiceChat from './components/VoiceChat'
 
 function App() {
     const [roomState, setRoomState] = useState(null);
@@ -793,6 +794,9 @@ function App() {
     return (
         <div>
             {renderContent()}
+            {isJoined && currentRoomId && myPlayerId && (
+                <VoiceChat roomId={currentRoomId} myPlayerId={myPlayerId} />
+            )}
             {showSuperAdmin && <AdminDashboard onClose={() => setShowSuperAdmin(false)} />}
         </div>
     )

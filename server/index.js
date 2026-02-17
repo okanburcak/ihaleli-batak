@@ -1,8 +1,17 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const Room = require('./game/Room');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Allow all origins for simplicity (or configure strictly for prod)
+        methods: ["GET", "POST"]
+    }
+});
 
 app.use(express.json());
 
@@ -265,6 +274,39 @@ app.delete('/api/admin/rooms/:roomId', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+// --- Socket.io Signaling for Voice Chat ---
+io.on('connection', (socket) => {
+    console.log('[SOCKET] User connected:', socket.id);
+
+    socket.on('join-room', (roomId, userId) => {
+        socket.join(roomId);
+        console.log(`[SOCKET] User ${userId} (${socket.id}) joined room ${roomId}`);
+        // Notify others in room that a new user joined
+        socket.to(roomId).emit('user-connected', userId);
+
+        socket.on('disconnect', () => {
+            console.log(`[SOCKET] User ${userId} (${socket.id}) disconnected`);
+            socket.to(roomId).emit('user-disconnected', userId);
+        });
+    });
+
+    // WebRTC Signaling: relay offer/answer/candidate to specific user
+    socket.on('signal', (data) => {
+        // data: { to: targetUserId, from: myUserId, signal: signalData }
+        // We broadcast to the room, but client filters by 'to' or we can emit to specific socket if we mapped userId->socketId
+        // For simplicity in this small app, we can just broadcast to the room and let clients filter, 
+        // OR better: we can store userId->socketId mapping.
+        // Let's use room broadcast for now but filtered by the client, or just emit to room. 
+        // Actually, 'to' is key. 
+        // Since we don't have a global user list easily accessible here without state, let's just broadcast to the room.
+        // Clients will ignore signals not meant for them.
+        const { roomId } = data;
+        if (roomId) {
+            socket.to(roomId).emit('signal', data);
+        }
+    });
+});
+
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
