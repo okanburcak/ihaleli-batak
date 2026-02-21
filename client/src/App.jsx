@@ -334,6 +334,17 @@ function App() {
         setView('LOBBY');
     };
 
+    const addBot = async (seatIndex) => {
+        try {
+            const result = await api.addBot(currentRoomId, seatIndex);
+            if (result.error) {
+                setErrorMsg(result.error);
+            }
+        } catch (e) {
+            setErrorMsg('Bot eklenemedi');
+        }
+    };
+
     // Poll Lobby
     useEffect(() => {
         let interval;
@@ -527,11 +538,22 @@ function App() {
                         <h2 className="text-xl mb-4 border-b border-green-600 pb-2">Bağlı Oyuncular</h2>
                         <ul className="space-y-4">
                             {roomState.players.map((p, idx) => {
-                                if (!p) return (
-                                    <li key={idx} className="flex flex-col bg-green-700/30 p-2 rounded border border-dashed border-gray-500">
-                                        <span className="text-gray-400 italic">Boş Koltuk {idx + 1}</span>
-                                    </li>
-                                );
+                                if (!p) {
+                                    const isSeated = roomState.players.some(pl => pl?.id === myPlayerId);
+                                    return (
+                                        <li key={idx} className="flex items-center justify-between bg-green-700/30 p-2 rounded border border-dashed border-gray-500">
+                                            <span className="text-gray-400 italic">Boş Koltuk {idx + 1}</span>
+                                            {isSeated && (
+                                                <button
+                                                    onClick={() => addBot(idx)}
+                                                    className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded"
+                                                >
+                                                    🤖 Bot
+                                                </button>
+                                            )}
+                                        </li>
+                                    );
+                                }
                                 return (
                                     <li key={idx} className="flex justify-between items-center bg-green-700/50 p-2 rounded">
                                         <div className="flex flex-col">
