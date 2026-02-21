@@ -774,6 +774,11 @@ class Room {
         if (this.state !== 'BIDDING') return { error: 'Sadece ihale sırasında bozulabilir' };
 
         const pIndex = this.seats.findIndex(p => p?.id === playerId);
+        if (pIndex === -1) return { error: 'Oyuncu bulunamadı' };
+
+        // Only the round bid starter can request a redeal
+        if (pIndex !== this.roundBidStarterIndex) return { error: 'Sadece el başlatan oyuncu bozabilir' };
+
         const hand = this.hands[pIndex];
         if (!hand) return { error: 'El bulunamadı' };
 

@@ -212,6 +212,7 @@ app.post('/api/rooms/:roomId/redeal', resolvePlayer, requirePlayer, (req, res) =
     if (!room) return res.status(404).json({ error: 'Room not found' });
 
     const result = room.requestRedeal(req.playerId);
+    if (result.error) return res.status(400).json(result);
     res.json(result);
 });
 
