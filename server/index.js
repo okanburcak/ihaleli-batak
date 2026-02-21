@@ -230,6 +230,25 @@ app.post('/api/rooms/:roomId/restart', resolvePlayer, requirePlayer, (req, res) 
     res.json(result);
 });
 
+// Add Bot to Room
+app.post('/api/rooms/:roomId/add-bot', resolvePlayer, requirePlayer, (req, res) => {
+    const { roomId } = req.params;
+    const { seatIndex } = req.body;
+
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    // Any seated player can add a bot
+    const player = room.players.find(p => p.id === req.playerId);
+    if (!player || player.seatIndex === -1) {
+        return res.status(403).json({ error: 'Only seated players can add bots' });
+    }
+
+    const result = room.addBotPlayer(seatIndex);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
 // --- Super Admin Routes (protected by admin secret) ---
 
 // List all rooms
