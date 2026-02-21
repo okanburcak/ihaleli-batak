@@ -339,6 +339,8 @@ function App() {
             const result = await api.addBot(currentRoomId, seatIndex);
             if (result.error) {
                 setErrorMsg(result.error);
+            } else {
+                await fetchState();
             }
         } catch (e) {
             setErrorMsg('Bot eklenemedi');

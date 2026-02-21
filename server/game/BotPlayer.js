@@ -1,11 +1,12 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const BOT_MODEL = process.env.BOT_MODEL || 'claude-haiku-4-5-20251001';
 
 const SYSTEM_PROMPT = `You are playing Batak, a Turkish trick-taking card game for 4 players.
 
 RULES:
-- 52-card deck, 4 players, 13 tricks per round (last trick uses only 12 cards — bidder buries 1 during exchange)
+- 52-card deck, 4 players, 12 tricks per round (bidder exchanges 4 cards with 4-card kitty, then 12 cards are played)
 - One player wins the bidding auction and picks the trump suit
 - Trump beats all non-trump cards. Within same suit, higher rank wins.
 - Rank order (low to high): 2 3 4 5 6 7 8 9 10 J Q K A
@@ -33,7 +34,7 @@ function getRankVal(r) {
 
 async function askClaude(prompt) {
     const msg = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: BOT_MODEL,
         max_tokens: 32,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }]
@@ -150,15 +151,17 @@ function parseExchangeResponse(response, hand) {
     const cards = [];
     const suits = ['♠', '♥', '♦', '♣'];
     const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    const remainingHand = [...hand]; // working copy to prevent duplicate matches
 
     for (const part of parts) {
         const suit = suits.find(s => part.includes(s));
         if (!suit) return null;
         const rank = part.replace(suit, '').trim().toUpperCase();
         if (!ranks.includes(rank)) return null;
-        const inHand = hand.find(c => c.suit === suit && c.rank === rank);
-        if (!inHand) return null;
-        cards.push(inHand);
+        const cardIdx = remainingHand.findIndex(c => c.suit === suit && c.rank === rank);
+        if (cardIdx === -1) return null;
+        cards.push(remainingHand[cardIdx]);
+        remainingHand.splice(cardIdx, 1); // remove so it can't be matched again
     }
 
     return { cards };

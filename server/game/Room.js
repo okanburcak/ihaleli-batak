@@ -40,6 +40,7 @@ class Room {
 
         // Helper to track timeouts (e.g. end of trick pause)
         this.pendingStateChange = null;
+        this.pendingBotDecisions = {}; // { seatIndex: true } when bot decision is in flight
     }
 
     isValidCard(card) {
@@ -269,10 +270,15 @@ class Room {
         if (this.pendingStateChange) return; // Trick is resolving, wait
         const currentPlayer = this.seats[this.turnIndex];
         if (!currentPlayer || !currentPlayer.isBot) return;
+        if (this.pendingBotDecisions[this.turnIndex]) return; // Already scheduled
 
         const { botDecide } = require('./BotPlayer');
         const seatIndex = this.turnIndex;
-        setTimeout(() => botDecide(this, seatIndex), 1000);
+        this.pendingBotDecisions[seatIndex] = true;
+        setTimeout(() => {
+            delete this.pendingBotDecisions[seatIndex];
+            botDecide(this, seatIndex);
+        }, 1000);
     }
 
     getPlayerState(playerId) {
