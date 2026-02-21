@@ -8,9 +8,10 @@ const Room = require('./game/Room');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const isDev = process.env.NODE_ENV !== 'production';
+const io = new Server(server, { cors: isDev ? { origin: '*' } : {} });
 
-app.use(cors());
+if (isDev) app.use(cors());
 app.use(express.json());
 
 const PORT = 3000;
