@@ -71,7 +71,11 @@ jobs:
           rm -rf /var/www/batak/*
           cp -r dist/* /var/www/batak/
           
-          # 6. Restart Server
+          # 6. Write environment secrets
+          echo "Writing environment file..."
+          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > /opt/ihaleli-batak/server/.env
+
+          # 7. Restart Server
           echo "Restarting server..."
           cd ../server
           pm2 restart batak-server || pm2 start index.js --name "batak-server"
