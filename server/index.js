@@ -1,14 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 
 const Room = require('./game/Room');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: '*' } });
 
+app.use(cors());
 app.use(express.json());
 
 const PORT = 3000;

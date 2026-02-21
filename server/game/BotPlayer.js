@@ -44,14 +44,39 @@ async function askClaude(prompt) {
 
 // --- Prompt Builders ---
 
+function handStrength(hand) {
+    // Count high cards and longest suit length
+    const hcp = hand.reduce((sum, c) => {
+        return sum + ({ 'A': 4, 'K': 3, 'Q': 2, 'J': 1 }[c.rank] || 0);
+    }, 0);
+    const suitCounts = { '♠': 0, '♥': 0, '♦': 0, '♣': 0 };
+    hand.forEach(c => suitCounts[c.suit]++);
+    const longestSuit = Math.max(...Object.values(suitCounts));
+    return { hcp, longestSuit };
+}
+
 function buildBiddingPrompt(hand, winningBid, activeBidders) {
     const minBid = winningBid.amount > 0 ? winningBid.amount + 1 : 5;
+    const { hcp, longestSuit } = handStrength(hand);
+
+    const aces = hand.filter(c => c.rank === 'A').length;
+    const kings = hand.filter(c => c.rank === 'K').length;
+    const queens = hand.filter(c => c.rank === 'Q').length;
+
     return `My hand (${hand.length} cards): ${handStr(hand)}
+Hand analysis: ${hcp} high-card points (A=4,K=3,Q=2,J=1), longest suit has ${longestSuit} cards, ${aces} aces, ${kings} kings, ${queens} queens
 Current winning bid: ${winningBid.amount}
 Active bidders left: ${activeBidders.length}
 To raise I must bid at least: ${minBid} (max 12)
 
-Should I bid or pass? Respond with "bid ${minBid}" through "bid 12" OR "pass"`;
+Bidding guidance:
+- HCP >= 14 or longest suit >= 5 with HCP >= 10: strongly consider bidding
+- HCP 10-13 with longest suit >= 4: bid if minBid <= 7
+- HCP < 8: pass unless you have an exceptional suit
+- You will also pick up 4 kitty cards after winning, which can improve your hand
+- Bid conservatively: bid ${minBid} unless hand is very strong (bid ${Math.min(minBid + 1, 12)} or higher)
+
+Respond with "bid ${minBid}" through "bid 12" OR "pass"`;
 }
 
 function buildTrumpPrompt(hand) {
@@ -189,9 +214,20 @@ function parsePlayResponse(response, hand, room) {
 // --- Fallback Logic (rule-based, always legal) ---
 
 function fallbackBid(room, botId) {
-    // Always pass on fallback
-    console.log(`[BOT] Fallback: passing bid`);
-    room.bid(botId, 0);
+    const seatIndex = room.seats.findIndex(s => s?.id === botId);
+    const hand = room.hands[seatIndex];
+    const { hcp, longestSuit } = handStrength(hand);
+    const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
+
+    // Bid minimum if hand is strong enough, otherwise pass
+    const shouldBid = (hcp >= 14) || (hcp >= 10 && longestSuit >= 4 && minBid <= 7);
+    if (shouldBid && minBid <= 12) {
+        console.log(`[BOT] Fallback bid: ${minBid} (hcp=${hcp}, longestSuit=${longestSuit})`);
+        room.bid(botId, minBid);
+    } else {
+        console.log(`[BOT] Fallback: passing bid (hcp=${hcp}, longestSuit=${longestSuit})`);
+        room.bid(botId, 0);
+    }
 }
 
 function fallbackTrump(room, botId, hand) {
