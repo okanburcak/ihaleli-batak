@@ -238,6 +238,42 @@ class Room {
         return { success: true, message: 'Left room' };
     }
 
+    addBotPlayer(targetSeatIndex) {
+        if (this.state !== 'WAITING') return { error: 'Can only add bot in WAITING state' };
+        if (targetSeatIndex < 0 || targetSeatIndex > 3) return { error: 'Invalid seat' };
+        if (this.seats[targetSeatIndex] !== null) return { error: 'Seat is taken' };
+
+        const botCount = this.seats.filter(s => s?.isBot).length;
+        const id = crypto.randomUUID();
+        const token = crypto.randomUUID();
+        const botPlayer = {
+            id,
+            token,
+            name: `Bot ${botCount + 1}`,
+            seatIndex: targetSeatIndex,
+            isAdmin: false,
+            isBot: true,
+            connected: true,
+            lastSeen: Date.now()
+        };
+
+        this.seats[targetSeatIndex] = botPlayer;
+        this.players.push(botPlayer);
+        this.scores[botPlayer.id] = 0;
+
+        console.log(`[ROOM ${this.roomId}] Bot "${botPlayer.name}" added to seat ${targetSeatIndex}`);
+        return { success: true, botName: botPlayer.name };
+    }
+
+    checkBotTurn() {
+        if (this.pendingStateChange) return; // Trick is resolving, wait
+        const currentPlayer = this.seats[this.turnIndex];
+        if (!currentPlayer || !currentPlayer.isBot) return;
+
+        const { botDecide } = require('./BotPlayer');
+        const seatIndex = this.turnIndex;
+        setTimeout(() => botDecide(this, seatIndex), 1000);
+    }
 
     getPlayerState(playerId) {
         const player = this.players.find(p => p.id === playerId);
@@ -369,6 +405,7 @@ class Room {
 
         this.bids = {};
         this.activeBidders = this.seats.filter(p => p !== null).map(p => p.id);
+        this.checkBotTurn();
     }
 
     bid(playerId, amount) {
@@ -410,10 +447,12 @@ class Room {
             const winnerSeat = this.seats.findIndex(p => p?.id === winnerId);
             this.turnIndex = winnerSeat;
             this.currentBidder = winnerId;
+            this.checkBotTurn();
             return { success: true };
         }
 
         this.turnIndex = nextIndex;
+        this.checkBotTurn();
         return { success: true };
     }
 
@@ -426,6 +465,7 @@ class Room {
             // Player chose not to take the kitty.
             // Kitty remains unused.
             this.state = 'PLAYING';
+            this.checkBotTurn();
             return { success: true, message: 'Gömü skipped' };
         }
 
@@ -458,6 +498,7 @@ class Room {
         }
 
         this.state = 'PLAYING';
+        this.checkBotTurn();
         return { success: true };
     }
 
@@ -470,6 +511,7 @@ class Room {
         this.currentTrick = [];
 
         // Turn stays with bidder
+        this.checkBotTurn();
         return { success: true };
     }
 
@@ -516,8 +558,10 @@ class Room {
 
         if (this.currentTrick.length === 4) {
             this.resolveTrick();
+            // checkBotTurn is called inside resolveTrick's setTimeout
         } else {
             this.turnIndex = (this.turnIndex + 1) % 4;
+            this.checkBotTurn();
         }
 
         return { success: true };
@@ -649,8 +693,10 @@ class Room {
 
             // Check Round End
             const totalTricks = Object.values(this.roundScores).reduce((a, b) => a + b, 0);
-            if (totalTricks === 12) { // 12 tricks (48 cards played)
+            if (totalTricks === 12) {
                 this.endRound();
+            } else {
+                this.checkBotTurn();
             }
         }, 2000);
 
