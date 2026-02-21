@@ -132,14 +132,6 @@ export const api = {
         return res.json();
     },
 
-    requestRedeal: async (roomId) => {
-        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/redeal`, {
-            method: 'POST',
-            headers: getHeaders()
-        });
-        return res.json();
-    },
-
     restartGame: async (roomId) => {
         const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/restart`, {
             method: 'POST',

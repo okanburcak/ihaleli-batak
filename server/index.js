@@ -204,17 +204,6 @@ app.post('/api/rooms/:roomId/sound', resolvePlayer, requirePlayer, (req, res) =>
     res.json(result);
 });
 
-// Redeal (Eli Boz)
-app.post('/api/rooms/:roomId/redeal', resolvePlayer, requirePlayer, (req, res) => {
-    const { roomId } = req.params;
-
-    const room = rooms[roomId];
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-
-    const result = room.requestRedeal(req.playerId);
-    if (result.error) return res.status(400).json(result);
-    res.json(result);
-});
 
 // Restart Game (Admin)
 app.post('/api/rooms/:roomId/restart', resolvePlayer, requirePlayer, (req, res) => {

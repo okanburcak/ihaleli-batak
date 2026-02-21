@@ -356,25 +356,41 @@ class Room {
 
         // Enforce 4 Players
         const playerCount = this.seats.filter(p => p !== null).length;
-        if (playerCount < 4) return { error: 'Not enough players' }; // Though this method is usually void, adding check logic.
-        // Actually this method is called by the route handler which returns {success:true}.
-        // If I return here, the route handler doesn't catch it unless I throw or specific return.
-        // Route `api/rooms/:roomId/start` calls `room.startGame()`.
-        // I should return a value that the route can use or just silently fail?
-        // Let's silently fail for now to match current `if` style, OR update route?
-        // The current code just checks state.
-
-        // Let's return false/error if failed. But `start` route handler lines 116 just calls `room.startGame(); res.json(...)`.
-        // So I can't easily bubble the error message up without changing the route handler too.
-        // But preventing the state change is the core goal.
-
+        if (playerCount < 4) return;
 
         this.state = 'BIDDING';
-        this.deck.reset();
-        const { hands, kitty } = this.deck.deal();
-        this.hands = hands;
-        this.kitty = kitty;
         this.buriedCards = [];
+
+        const strongCards = ['A', 'K', 'Q', 'J'];
+        let starterIndex = 0;
+        let isFirstDeal = this.firstHand;
+
+        // Auto-redeal if bid starter has no strong cards (rotate dealer each attempt)
+        for (let attempt = 0; attempt < 10; attempt++) {
+            if (attempt > 0) {
+                this.dealerIndex = (this.dealerIndex + 1) % 4;
+            }
+
+            this.deck.reset();
+            const { hands, kitty } = this.deck.deal();
+            this.hands = hands;
+            this.kitty = kitty;
+
+            if (isFirstDeal) {
+                for (let i = 0; i < 4; i++) {
+                    if (this.hands[i].some(c => c.suit === '♣' && c.rank === '2')) {
+                        starterIndex = i;
+                        break;
+                    }
+                }
+                isFirstDeal = false;
+                this.firstHand = false;
+            } else {
+                starterIndex = (this.dealerIndex + 1) % 4;
+            }
+
+            if (this.hands[starterIndex].some(c => strongCards.includes(c.rank))) break;
+        }
 
         this.validateDeckIntegrity();
 
@@ -383,26 +399,7 @@ class Room {
             if (p) this.roundScores[p.id] = 0;
         });
 
-        // Determine Starter
-        let starterIndex = 0; // Relative to 0-3 seats
-
-        if (this.firstHand) {
-            // Club 2
-            for (let i = 0; i < 4; i++) {
-                const hasClub2 = this.hands[i].some(c => c.suit === '♣' && c.rank === '2');
-                if (hasClub2) {
-                    starterIndex = i;
-                    break;
-                }
-            }
-            this.firstHand = false;
-        } else {
-            starterIndex = (this.dealerIndex + 1) % 4;
-        }
-
         this.turnIndex = starterIndex;
-        // Starter implicitly bids 4
-        // Note: We need a valid player at this seat
         const starter = this.seats[starterIndex];
         if (starter) {
             this.winningBid = { playerId: starter.id, amount: 4 };
@@ -768,30 +765,6 @@ class Room {
         setTimeout(() => {
             this.startGame();
         }, 5000);
-    }
-
-    requestRedeal(playerId) {
-        if (this.state !== 'BIDDING') return { error: 'Sadece ihale sırasında bozulabilir' };
-
-        const pIndex = this.seats.findIndex(p => p?.id === playerId);
-        if (pIndex === -1) return { error: 'Oyuncu bulunamadı' };
-
-        // Only the round bid starter can request a redeal
-        if (pIndex !== this.roundBidStarterIndex) return { error: 'Sadece el başlatan oyuncu bozabilir' };
-
-        const hand = this.hands[pIndex];
-        if (!hand) return { error: 'El bulunamadı' };
-
-        const strongCards = ['A', 'K', 'Q', 'J'];
-        const hasStrong = hand.some(c => strongCards.includes(c.rank));
-
-        if (hasStrong) return { error: 'Elinizde güçlü kart var, bozamazsınız' };
-
-        // Valid claim, redeal
-        // User requested: "if redeal is requested the dealer shifts one position too"
-        this.dealerIndex = (this.dealerIndex + 1) % 4;
-        this.startGame();
-        return { success: true, message: 'El bozuldu, yeniden dağıtılıyor...' };
     }
 
     restartGame() {
