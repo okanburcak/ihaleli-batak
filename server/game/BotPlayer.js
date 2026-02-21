@@ -3,7 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const BOT_MODEL = process.env.BOT_MODEL || 'claude-haiku-4-5-20251001';
 
-const SYSTEM_PROMPT = `You are playing Batak, a Turkish trick-taking card game for 4 players.
+const SYSTEM_PROMPT = `You are a strong Batak card game player. Batak is a Turkish trick-taking game for 4 players.
 
 RULES:
 - 52-card deck, 4 players, 12 tricks per round (bidder exchanges 4 cards with 4-card kitty, then 12 cards are played)
@@ -17,7 +17,13 @@ RULES:
 - Bidder scores tricks_taken if >= bid, else scores -bid_amount
 - Non-bidders: score tricks_taken, BUT score -bid_amount if they took 0 tricks (batak)
 
-Respond with ONLY the move in the exact format specified. No explanation, no extra text.`;
+STRATEGY:
+- As bidder: win at least as many tricks as you bid or you lose points
+- As non-bidder: try to win at least 1 trick to avoid batak penalty; also try to defeat the bidder
+- Save high trumps for later tricks; lead with low cards to probe opponents
+- Count high cards in each suit to estimate trick-winning potential
+
+Think briefly (1-2 sentences) about the best move, then output your decision on the final line in the exact format specified.`;
 
 function cardStr(c) {
     return `${c.suit}${c.rank}`;
@@ -35,11 +41,13 @@ function getRankVal(r) {
 async function askClaude(prompt) {
     const msg = await client.messages.create({
         model: BOT_MODEL,
-        max_tokens: 32,
+        max_tokens: 256,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }]
     });
-    return msg.content[0].text.trim().toLowerCase();
+    // Extract the last non-empty line — reasoning comes first, decision is last
+    const lines = msg.content[0].text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    return lines[lines.length - 1].toLowerCase();
 }
 
 // --- Prompt Builders ---
@@ -64,19 +72,18 @@ function buildBiddingPrompt(hand, winningBid, activeBidders) {
     const queens = hand.filter(c => c.rank === 'Q').length;
 
     return `My hand (${hand.length} cards): ${handStr(hand)}
-Hand analysis: ${hcp} high-card points (A=4,K=3,Q=2,J=1), longest suit has ${longestSuit} cards, ${aces} aces, ${kings} kings, ${queens} queens
+Hand analysis: ${hcp} HCP (A=4,K=3,Q=2,J=1), longest suit ${longestSuit} cards, ${aces} aces / ${kings} kings / ${queens} queens
 Current winning bid: ${winningBid.amount}
 Active bidders left: ${activeBidders.length}
 To raise I must bid at least: ${minBid} (max 12)
 
 Bidding guidance:
-- HCP >= 14 or longest suit >= 5 with HCP >= 10: strongly consider bidding
-- HCP 10-13 with longest suit >= 4: bid if minBid <= 7
-- HCP < 8: pass unless you have an exceptional suit
-- You will also pick up 4 kitty cards after winning, which can improve your hand
-- Bid conservatively: bid ${minBid} unless hand is very strong (bid ${Math.min(minBid + 1, 12)} or higher)
+- HCP >= 14 or longest suit >= 5 with HCP >= 10: bid aggressively
+- HCP 10-13 with longest suit >= 4: bid ${minBid} if it is <= 7
+- HCP < 8: pass
+- Remember: you pick up 4 kitty cards if you win the bid
 
-Respond with "bid ${minBid}" through "bid 12" OR "pass"`;
+Think briefly about whether to bid or pass, then on the final line write ONLY: "bid ${minBid}" through "bid 12" OR "pass"`;
 }
 
 function buildTrumpPrompt(hand) {
@@ -84,7 +91,7 @@ function buildTrumpPrompt(hand) {
 I won the bid. I must choose a trump suit BEFORE seeing the kitty.
 Trump cards beat all other suits. Pick the suit where I have the most and strongest cards.
 
-Respond with ONLY: "trump ♠", "trump ♥", "trump ♦", or "trump ♣"`;
+Think briefly about the best trump suit, then on the final line write ONLY: "trump ♠", "trump ♥", "trump ♦", or "trump ♣"`;
 }
 
 function buildExchangePrompt(hand, kitty, trump) {
@@ -93,9 +100,9 @@ Kitty - 4 cards I will automatically receive: ${handStr(kitty)}
 Trump: ${trump}
 
 I must choose exactly 4 cards from MY HAND to discard. I will then hold my remaining 8 + the 4 kitty cards = 12 cards.
-Strategy: Keep high cards and trump cards. Discard low non-trump cards.
+Strategy: Keep high cards and trump cards. Discard low non-trump cards. Discard from short suits to create voids.
 
-Respond with ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
+Think briefly about which 4 cards to discard, then on the final line write ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
 }
 
 function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats) {
@@ -143,7 +150,7 @@ ${rules}
 
 Round tricks taken: ${roundScoreStr}
 
-Respond with ONLY: "play ♠A" (format: "play " + suit + rank)`;
+Think briefly about the best card to play, then on the final line write ONLY: "play ♠A" (format: "play " + suit + rank)`;
 }
 
 // --- Response Parsers ---
