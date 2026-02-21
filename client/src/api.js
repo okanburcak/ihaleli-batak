@@ -148,6 +148,15 @@ export const api = {
         return res.json();
     },
 
+    addBot: async (roomId, seatIndex) => {
+        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/add-bot`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ seatIndex })
+        });
+        return res.json();
+    },
+
     // Admin API (requires admin secret)
     adminListRooms: async () => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getAdminHeaders() });
