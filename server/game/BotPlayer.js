@@ -1,0 +1,303 @@
+const Anthropic = require('@anthropic-ai/sdk');
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const SYSTEM_PROMPT = `You are playing Batak, a Turkish trick-taking card game for 4 players.
+
+RULES:
+- 52-card deck, 4 players, 13 tricks per round (last trick uses only 12 cards — bidder buries 1 during exchange)
+- One player wins the bidding auction and picks the trump suit
+- Trump beats all non-trump cards. Within same suit, higher rank wins.
+- Rank order (low to high): 2 3 4 5 6 7 8 9 10 J Q K A
+- You MUST follow the lead suit if you have it
+- If you have the lead suit, you MUST play higher than the current highest card on the table if you can
+- If you are void in the lead suit, you MUST play trump if you have it
+- If you play trump and there is already a trump on the table, you MUST play higher trump if you can
+- Bidder scores tricks_taken if >= bid, else scores -bid_amount
+- Non-bidders: score tricks_taken, BUT score -bid_amount if they took 0 tricks (batak)
+
+Respond with ONLY the move in the exact format specified. No explanation, no extra text.`;
+
+function cardStr(c) {
+    return `${c.suit}${c.rank}`;
+}
+
+function handStr(hand) {
+    return hand.map(cardStr).join(' ');
+}
+
+function getRankVal(r) {
+    const map = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11 };
+    return map[r] || parseInt(r);
+}
+
+async function askClaude(prompt) {
+    const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 32,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: prompt }]
+    });
+    return msg.content[0].text.trim().toLowerCase();
+}
+
+// --- Prompt Builders ---
+
+function buildBiddingPrompt(hand, winningBid, activeBidders) {
+    const minBid = winningBid.amount > 0 ? winningBid.amount + 1 : 5;
+    return `My hand (${hand.length} cards): ${handStr(hand)}
+Current winning bid: ${winningBid.amount}
+Active bidders left: ${activeBidders.length}
+To raise I must bid at least: ${minBid} (max 12)
+
+Should I bid or pass? Respond with "bid ${minBid}" through "bid 12" OR "pass"`;
+}
+
+function buildTrumpPrompt(hand) {
+    return `My hand (${hand.length} cards): ${handStr(hand)}
+I won the bid. I must choose a trump suit BEFORE seeing the kitty.
+Trump cards beat all other suits. Pick the suit where I have the most and strongest cards.
+
+Respond with ONLY: "trump ♠", "trump ♥", "trump ♦", or "trump ♣"`;
+}
+
+function buildExchangePrompt(hand, kitty, trump) {
+    return `My hand (${hand.length} cards): ${handStr(hand)}
+Kitty - 4 cards I will automatically receive: ${handStr(kitty)}
+Trump: ${trump}
+
+I must choose exactly 4 cards from MY HAND to discard. I will then hold my remaining 8 + the 4 kitty cards = 12 cards.
+Strategy: Keep high cards and trump cards. Discard low non-trump cards.
+
+Respond with ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
+}
+
+function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats) {
+    const leadSuit = currentTrick.length > 0 ? currentTrick[0].card.suit : null;
+    const playedCards = currentTrick.map(t => {
+        const player = seats.find(s => s?.id === t.playerId);
+        return `${cardStr(t.card)} (${player?.name || '?'})`;
+    }).join(', ');
+
+    const roundScoreStr = seats
+        .filter(Boolean)
+        .map(s => `${s.name}: ${roundScores[s.id] || 0} tricks`)
+        .join(', ');
+
+    let rules = '';
+    if (currentTrick.length === 0) {
+        rules = 'I lead this trick. I can play any card.';
+    } else {
+        const hasLead = hand.some(c => c.suit === leadSuit);
+        const hasTrump = hand.some(c => c.suit === trump);
+        const highestOnTable = currentTrick
+            .filter(t => t.card.suit === leadSuit || t.card.suit === trump)
+            .reduce((best, t) => {
+                if (!best) return t.card;
+                if (t.card.suit === trump && best.suit !== trump) return t.card;
+                if (t.card.suit === trump && best.suit === trump && getRankVal(t.card.rank) > getRankVal(best.rank)) return t.card;
+                if (t.card.suit === leadSuit && best.suit !== trump && getRankVal(t.card.rank) > getRankVal(best.rank)) return t.card;
+                return best;
+            }, null);
+
+        if (hasLead) {
+            rules = `I have lead suit (${leadSuit}), MUST follow it. Current highest on table: ${highestOnTable ? cardStr(highestOnTable) : 'none'}. Must raise if I can.`;
+        } else if (hasTrump) {
+            rules = `Void in lead suit (${leadSuit}), MUST play trump (${trump}). ${currentTrick.some(t => t.card.suit === trump) ? 'Trump already played, must raise trump if I can.' : 'No trump yet played.'}`;
+        } else {
+            rules = `Void in both lead suit and trump. Can play any card (it will lose).`;
+        }
+    }
+
+    return `My hand: ${handStr(hand)}
+Cards played in this trick: ${playedCards || 'none (I lead)'}
+Trump: ${trump}${leadSuit ? `\nLead suit: ${leadSuit}` : ''}
+
+${rules}
+
+Round tricks taken: ${roundScoreStr}
+
+Respond with ONLY: "play ♠A" (format: "play " + suit + rank)`;
+}
+
+// --- Response Parsers ---
+
+function parseBiddingResponse(response, minBid) {
+    if (response === 'pass') return { amount: 0 };
+    const match = response.match(/bid\s*(\d+)/);
+    if (match) {
+        const amount = parseInt(match[1]);
+        if (amount >= minBid && amount <= 12) return { amount };
+    }
+    return null; // Invalid
+}
+
+function parseTrumpResponse(response) {
+    const suits = ['♠', '♥', '♦', '♣'];
+    for (const suit of suits) {
+        if (response.includes(suit)) return { suit };
+    }
+    return null;
+}
+
+function parseExchangeResponse(response, hand) {
+    const match = response.match(/bury\s+(.+)/);
+    if (!match) return null;
+
+    const parts = match[1].split(',').map(s => s.trim());
+    if (parts.length !== 4) return null;
+
+    const cards = [];
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+    for (const part of parts) {
+        const suit = suits.find(s => part.includes(s));
+        if (!suit) return null;
+        const rank = part.replace(suit, '').trim().toUpperCase();
+        if (!ranks.includes(rank)) return null;
+        const inHand = hand.find(c => c.suit === suit && c.rank === rank);
+        if (!inHand) return null;
+        cards.push(inHand);
+    }
+
+    return { cards };
+}
+
+function parsePlayResponse(response, hand, room) {
+    const match = response.match(/play\s*(.+)/);
+    if (!match) return null;
+
+    const cardStr = match[1].trim();
+    const suits = ['♠', '♥', '♦', '♣'];
+    const suit = suits.find(s => cardStr.includes(s));
+    if (!suit) return null;
+
+    const rank = cardStr.replace(suit, '').trim().toUpperCase();
+    const card = hand.find(c => c.suit === suit && c.rank === rank);
+    if (!card) return null;
+
+    // Validate the move is legal
+    if (!room.isValidMove(hand, card, room.currentTrick)) return null;
+
+    return { card };
+}
+
+// --- Fallback Logic (rule-based, always legal) ---
+
+function fallbackBid(room, botId) {
+    // Always pass on fallback
+    console.log(`[BOT] Fallback: passing bid`);
+    room.bid(botId, 0);
+}
+
+function fallbackTrump(room, botId, hand) {
+    // Pick suit with most cards
+    const counts = { '♠': 0, '♥': 0, '♦': 0, '♣': 0 };
+    hand.forEach(c => counts[c.suit]++);
+    const suit = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    console.log(`[BOT] Fallback trump: ${suit}`);
+    room.selectTrump(botId, suit);
+}
+
+function fallbackExchange(room, botId, hand, trump) {
+    // Bury lowest non-trump cards first, then lowest trump if needed
+    const nonTrump = hand
+        .filter(c => c.suit !== trump)
+        .sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
+    const trumpCards = hand
+        .filter(c => c.suit === trump)
+        .sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
+
+    const tobury = [...nonTrump, ...trumpCards].slice(0, 4);
+    console.log(`[BOT] Fallback exchange: burying ${tobury.map(c => c.suit+c.rank).join(',')}`);
+    room.exchangeCards(botId, tobury);
+}
+
+function fallbackPlay(room, botId, seatIndex) {
+    const hand = room.hands[seatIndex];
+    const legal = hand.filter(c => room.isValidMove(hand, c, room.currentTrick));
+    const sorted = legal.sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
+    const card = sorted[0];
+    console.log(`[BOT] Fallback play: ${card.suit}${card.rank}`);
+    room.playCard(botId, card);
+}
+
+// --- Main Decision Function ---
+
+async function botDecide(room, seatIndex) {
+    const bot = room.seats[seatIndex];
+    if (!bot || !bot.isBot) return;
+
+    const botId = bot.id;
+    const hand = room.hands[seatIndex];
+
+    if (!hand || hand.length === 0) {
+        console.log(`[BOT] ${bot.name}: no hand, skipping`);
+        return;
+    }
+
+    console.log(`[BOT] ${bot.name} deciding for state: ${room.state}`);
+
+    try {
+        if (room.state === 'BIDDING') {
+            const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
+            const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
+            const response = await askClaude(prompt);
+            console.log(`[BOT] ${bot.name} BIDDING response: "${response}"`);
+            const action = parseBiddingResponse(response, minBid);
+            if (action) {
+                room.bid(botId, action.amount);
+            } else {
+                fallbackBid(room, botId);
+            }
+
+        } else if (room.state === 'TRUMP_SELECTION') {
+            const prompt = buildTrumpPrompt(hand);
+            const response = await askClaude(prompt);
+            console.log(`[BOT] ${bot.name} TRUMP response: "${response}"`);
+            const action = parseTrumpResponse(response);
+            if (action) {
+                room.selectTrump(botId, action.suit);
+            } else {
+                fallbackTrump(room, botId, hand);
+            }
+
+        } else if (room.state === 'EXCHANGE_CARDS') {
+            const prompt = buildExchangePrompt(hand, room.kitty, room.trump);
+            const response = await askClaude(prompt);
+            console.log(`[BOT] ${bot.name} EXCHANGE response: "${response}"`);
+            const action = parseExchangeResponse(response, hand);
+            if (action) {
+                room.exchangeCards(botId, action.cards);
+            } else {
+                fallbackExchange(room, botId, hand, room.trump);
+            }
+
+        } else if (room.state === 'PLAYING') {
+            const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats);
+            const response = await askClaude(prompt);
+            console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);
+            const action = parsePlayResponse(response, hand, room);
+            if (action) {
+                room.playCard(botId, action.card);
+            } else {
+                fallbackPlay(room, botId, seatIndex);
+            }
+        }
+
+    } catch (err) {
+        console.error(`[BOT] ${bot.name} Claude API error: ${err.message}`);
+        // Fallback based on current state
+        try {
+            if (room.state === 'BIDDING') fallbackBid(room, botId);
+            else if (room.state === 'TRUMP_SELECTION') fallbackTrump(room, botId, hand);
+            else if (room.state === 'EXCHANGE_CARDS') fallbackExchange(room, botId, hand, room.trump);
+            else if (room.state === 'PLAYING') fallbackPlay(room, botId, seatIndex);
+        } catch (fallbackErr) {
+            console.error(`[BOT] ${bot.name} fallback also failed: ${fallbackErr.message}`);
+        }
+    }
+}
+
+module.exports = { botDecide };
