@@ -320,6 +320,11 @@ async function botDecide(room, seatIndex) {
     try {
         if (room.state === 'BIDDING') {
             const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
+            if (minBid > 12) {
+                console.log(`[BOT] ${bot.name}: min bid ${minBid} exceeds 12, forced pass`);
+                room.bid(botId, 0);
+                return;
+            }
             const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
             const response = await askClaude(prompt);
             console.log(`[BOT] ${bot.name} BIDDING response: "${response}"`);
@@ -353,6 +358,12 @@ async function botDecide(room, seatIndex) {
             }
 
         } else if (room.state === 'PLAYING') {
+            const legal = hand.filter(c => room.isValidMove(hand, c, room.currentTrick));
+            if (legal.length === 1) {
+                console.log(`[BOT] ${bot.name}: only one legal card (${legal[0].suit}${legal[0].rank}), playing directly`);
+                room.playCard(botId, legal[0]);
+                return;
+            }
             const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
             const response = await askClaude(prompt);
             console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);
