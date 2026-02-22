@@ -360,6 +360,7 @@ class Room {
         if (playerCount < 4) return;
 
         this.state = 'BIDDING';
+        this.trump = null;
         this.buriedCards = [];
         this.playedCardsHistory = [];
 
