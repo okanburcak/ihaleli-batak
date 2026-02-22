@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { api, setPlayerId, getPlayerId } from './api'
+import { api, setPlayerId, getPlayerId, getPushClientId } from './api'
 import { useSound } from './contexts/SoundContext'
 import GameBoard from './components/GameBoard'
 import Card from './components/Card'
@@ -368,8 +368,8 @@ function App() {
     // Web Push: subscribe when entering lobby
     useEffect(() => {
         if (view !== 'LOBBY') return;
-        const pid = getPlayerId();
-        if (!pid || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        const pid = getPushClientId();
 
         navigator.serviceWorker.ready.then(async reg => {
             const permission = await Notification.requestPermission();

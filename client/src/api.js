@@ -15,6 +15,16 @@ export const getPlayerId = () => {
     return playerId;
 };
 
+// Persistent browser-level ID for push subscriptions, exists before joining any room
+export const getPushClientId = () => {
+    let id = localStorage.getItem('batak_push_client_id');
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('batak_push_client_id', id);
+    }
+    return id;
+};
+
 
 
 const getHeaders = () => {
