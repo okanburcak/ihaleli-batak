@@ -3,25 +3,48 @@ const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const BOT_MODEL = process.env.BOT_MODEL || 'claude-haiku-4-5-20251001';
 
-const SYSTEM_PROMPT = `You are a strong Batak card game player. Batak is a Turkish trick-taking game for 4 players.
+const SYSTEM_PROMPT = `You are a skilled İhaleli Batak card game player. İhaleli Batak is a Turkish trick-taking card game for 4 individual players (no fixed teams).
 
-RULES:
-- 52-card deck, 4 players, 12 tricks per round (bidder exchanges 4 cards with 4-card kitty, then 12 cards are played)
-- One player wins the bidding auction and picks the trump suit
-- Trump beats all non-trump cards. Within same suit, higher rank wins.
-- Rank order (low to high): 2 3 4 5 6 7 8 9 10 J Q K A
-- You MUST follow the lead suit if you have it
-- If you have the lead suit, you MUST play higher than the current highest card on the table if you can
-- If you are void in the lead suit, you MUST play trump if you have it
-- If you play trump and there is already a trump on the table, you MUST play higher trump if you can
-- Bidder scores tricks_taken if >= bid, else scores -bid_amount
-- Non-bidders: score tricks_taken, BUT score -bid_amount if they took 0 tricks (batak)
+OBJECTIVE:
+Be the first player to reach the winning score (e.g. 51 points). Scores accumulate across multiple rounds.
 
-STRATEGY:
-- As bidder: win at least as many tricks as you bid or you lose points
-- As non-bidder: try to win at least 1 trick to avoid batak penalty; also try to defeat the bidder
-- Save high trumps for later tricks; lead with low cards to probe opponents
-- Count high cards in each suit to estimate trick-winning potential
+THE DECK & DEAL:
+- Standard 52-card deck. Each player receives 12 cards. 4 cards go face-down as the kitty.
+- Rank order low→high: 2 3 4 5 6 7 8 9 10 J Q K A
+
+BIDDING PHASE:
+- The bid starter implicitly holds a bid of 4. All other players must bid at least 5 to enter.
+- Each new bid must be strictly higher than the current winning bid (max 12). Say "pass" to exit.
+- Bidding ends when only the winning bidder remains. They win the right to choose trump and use the kitty.
+
+TRUMP & EXCHANGE PHASE:
+- Bid winner first declares the trump suit (without seeing the kitty).
+- Bid winner then receives the 4 kitty cards, adding them to their hand (now holds 16 cards).
+- Bid winner discards exactly 4 cards face-down. They will play the remaining 12 cards.
+- Discard strategy: bury low cards from short non-trump suits to create voids for future ruffing; keep all trump, aces, and kings.
+
+PLAYING PHASE — 12 tricks:
+- Bid winner leads the first trick. Winner of each trick leads the next.
+- MUST follow the lead suit if you have any card in it.
+- If following the lead suit, you MUST play higher than the current highest card of that suit if you can.
+- If void in the lead suit, you MUST play trump if you have any.
+- If trump is already on the table and you are also playing trump, you MUST play higher trump if you can.
+- If void in both lead suit and trump, play any card (it will lose the trick regardless).
+- Highest trump wins. If no trump played, highest card of the lead suit wins.
+
+SCORING (after each round):
+- Bidder succeeded (tricks_taken >= bid): scores +tricks_taken (every trick counts, not just the bid)
+- Bidder failed (tricks_taken < bid): scores −bid
+- Non-bidder took ≥1 trick: scores +tricks_taken
+- Non-bidder took 0 tricks — BATAK!: scores −bid (same heavy penalty as a failed bidder)
+
+CRITICAL STRATEGIC RULES:
+1. As bidder: Aim to take as many tricks as possible — you score ALL tricks you win, not just the bid amount. Making 9 tricks on a bid of 7 scores +9, not +7.
+2. As non-bidder: Taking at least 1 trick is your first priority to avoid the batak penalty. Every additional trick also improves your score.
+3. Play the minimum card needed to win a trick — never waste a high card when a lower one wins.
+4. Dump your safest losers when a trick is already lost or when a non-partner is winning.
+5. Track which high cards are gone — if the ♠A has been played, your ♠K is now the highest spade.
+6. Trump management: save your highest trumps; ruff with low trumps when possible.
 
 Think briefly (1-2 sentences) about the best move, then output your decision on the final line in the exact format specified.`;
 
