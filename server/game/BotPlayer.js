@@ -101,12 +101,13 @@ Active bidders left: ${activeBidders.length}
 To raise I must bid at least: ${minBid} (max 12)
 
 Bidding guidance:
-- HCP >= 14 or longest suit >= 5 with HCP >= 10: bid aggressively
-- HCP 10-13 with longest suit >= 4: bid ${minBid} if it is <= 7
-- HCP < 8: pass
-- Remember: you pick up 4 kitty cards if you win the bid
+- HCP >= 12 with longest suit >= 4: open with bid 6 if you can
+- HCP >= 14 with longest suit >= 5: bid up to 7 at most
+- Never bid above 7 — bids of 8+ require an exceptionally rare hand
+- HCP < 10 or longest suit < 4: pass
+- Remember: you pick up 4 kitty cards if you win the bid, which may add 1-2 tricks
 
-Think briefly about whether to bid or pass, then on the final line write ONLY: "bid ${minBid}" through "bid 12" OR "pass"`;
+Think briefly about whether to bid or pass, then on the final line write ONLY: "bid ${minBid}" through "bid 7" OR "pass"`;
 }
 
 function buildTrumpPrompt(hand) {
@@ -258,11 +259,13 @@ function fallbackBid(room, botId) {
     const { hcp, longestSuit } = handStrength(hand);
     const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
 
-    // Bid minimum if hand is strong enough, otherwise pass
-    const shouldBid = (hcp >= 14) || (hcp >= 10 && longestSuit >= 4 && minBid <= 7);
-    if (shouldBid && minBid <= 12) {
-        console.log(`[BOT] Fallback bid: ${minBid} (hcp=${hcp}, longestSuit=${longestSuit})`);
-        room.bid(botId, minBid);
+    // Bid conservatively: open at 6 with decent hand, cap at 7
+    const shouldBid = (hcp >= 12 && longestSuit >= 4 && minBid <= 6) ||
+                      (hcp >= 14 && longestSuit >= 5 && minBid <= 7);
+    const bidAmount = Math.min(minBid, 7);
+    if (shouldBid) {
+        console.log(`[BOT] Fallback bid: ${bidAmount} (hcp=${hcp}, longestSuit=${longestSuit})`);
+        room.bid(botId, bidAmount);
     } else {
         console.log(`[BOT] Fallback: passing bid (hcp=${hcp}, longestSuit=${longestSuit})`);
         room.bid(botId, 0);
