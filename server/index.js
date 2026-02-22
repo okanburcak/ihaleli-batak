@@ -3,8 +3,12 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const webpush = require('web-push');
+const fs = require('fs');
+const path = require('path');
 
 const Room = require('./game/Room');
+
+const SUBS_FILE = path.join(__dirname, 'data', 'push-subscriptions.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,10 +26,34 @@ webpush.setVapidDetails(
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
 );
-const pushSubscriptions = {}; // { playerId: PushSubscription }
+// Load persisted subscriptions from disk, or start fresh
+let pushSubscriptions = {};
+try {
+    pushSubscriptions = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf8'));
+    console.log(`[PUSH] Loaded ${Object.keys(pushSubscriptions).length} subscriptions from disk`);
+} catch {
+    // File doesn't exist yet — that's fine
+}
+
+const savePushSubscriptions = () => {
+    fs.mkdirSync(path.dirname(SUBS_FILE), { recursive: true });
+    fs.writeFileSync(SUBS_FILE, JSON.stringify(pushSubscriptions, null, 2));
+};
 
 const sendPush = (subscription, payload) =>
-    webpush.sendNotification(subscription, JSON.stringify(payload)).catch(() => {});
+    webpush.sendNotification(subscription, JSON.stringify(payload))
+        .catch(err => {
+            // 410 Gone = subscription expired/unsubscribed, remove it
+            if (err.statusCode === 410) {
+                const key = Object.keys(pushSubscriptions).find(
+                    k => pushSubscriptions[k].endpoint === subscription.endpoint
+                );
+                if (key) {
+                    delete pushSubscriptions[key];
+                    savePushSubscriptions();
+                }
+            }
+        });
 
 const pushAll = (payload) =>
     Object.values(pushSubscriptions).forEach(sub => sendPush(sub, payload));
@@ -80,7 +108,8 @@ app.post('/api/push/subscribe', (req, res) => {
     const { subscription, playerId } = req.body;
     if (subscription && playerId) {
         pushSubscriptions[playerId] = subscription;
-        console.log(`[PUSH] Subscription stored for player ${playerId}`);
+        savePushSubscriptions();
+        console.log(`[PUSH] Subscription stored for player ${playerId} (total: ${Object.keys(pushSubscriptions).length})`);
     }
     res.json({ success: true });
 });
