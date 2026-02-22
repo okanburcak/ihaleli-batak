@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const webpush = require('web-push');
 
 const Room = require('./game/Room');
 
@@ -14,6 +15,24 @@ app.use(express.json());
 const PORT = 3000;
 // Game State Storage
 const rooms = {};
+
+// Web Push
+webpush.setVapidDetails(
+    process.env.VAPID_MAILTO,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+);
+const pushSubscriptions = {}; // { playerId: PushSubscription }
+
+const sendPush = (subscription, payload) =>
+    webpush.sendNotification(subscription, JSON.stringify(payload)).catch(() => {});
+
+const pushAll = (payload) =>
+    Object.values(pushSubscriptions).forEach(sub => sendPush(sub, payload));
+
+const pushRoom = (room, excludePlayerId, payload) =>
+    room.players.filter(p => p && p.id !== excludePlayerId && pushSubscriptions[p.id])
+        .forEach(p => sendPush(pushSubscriptions[p.id], payload));
 
 // Helper to get room, optionally creating with settings
 const getRoom = (roomId, winningScore = 51) => {
@@ -49,6 +68,23 @@ const requirePlayer = (req, res, next) => {
 
 
 
+// --- Push Routes ---
+
+// Serve VAPID public key
+app.get('/api/push/vapid-public-key', (req, res) => {
+    res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+// Store push subscription
+app.post('/api/push/subscribe', (req, res) => {
+    const { subscription, playerId } = req.body;
+    if (subscription && playerId) {
+        pushSubscriptions[playerId] = subscription;
+        console.log(`[PUSH] Subscription stored for player ${playerId}`);
+    }
+    res.json({ success: true });
+});
+
 // --- Routes ---
 
 // List Rooms (Lobby)
@@ -75,6 +111,7 @@ app.post('/api/rooms', (req, res) => {
     try {
         const room = getRoom(roomId, winningScore);
         console.log(`[CREATE ROOM] Room ${roomId} created.`);
+        pushAll({ title: 'Yeni Masa Kuruldu 🃏', body: 'Birisi yeni bir masa kurdu. Katılmak ister misin?' });
         res.json({ roomId });
     } catch (e) {
         console.error(`[CREATE ROOM] Error creating room ${roomId}:`, e);
@@ -91,6 +128,7 @@ app.post('/api/rooms/:roomId/join', (req, res) => {
     const result = room.addPlayer(name, code, seatIndex);
 
     if (result.success) {
+        pushRoom(room, result.playerId, { title: 'Oyuncu Katıldı 👤', body: `${name} masaya katıldı!` });
         res.json(result);
     } else {
         res.status(400).json(result);

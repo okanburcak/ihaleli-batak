@@ -365,6 +365,26 @@ function App() {
         return () => clearInterval(interval);
     }, [view, isJoined]);
 
+    // Web Push: subscribe when entering lobby
+    useEffect(() => {
+        if (view !== 'LOBBY') return;
+        const pid = getPlayerId();
+        if (!pid || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+        navigator.serviceWorker.ready.then(async reg => {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') return;
+
+            const { publicKey } = await api.getVapidPublicKey();
+            const existing = await reg.pushManager.getSubscription();
+            const subscription = existing || await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: publicKey
+            });
+            api.subscribePush(subscription, pid);
+        }).catch(() => {});
+    }, [view]);
+
     const enterLobby = () => {
         if (!playerName.trim()) {
             alert("Lütfen isminizi giriniz.");

@@ -74,6 +74,9 @@ jobs:
           # 6. Write environment secrets
           echo "Writing environment file..."
           echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" > /opt/ihaleli-batak/server/.env
+          echo "VAPID_PUBLIC_KEY=${{ secrets.VAPID_PUBLIC_KEY }}" >> /opt/ihaleli-batak/server/.env
+          echo "VAPID_PRIVATE_KEY=${{ secrets.VAPID_PRIVATE_KEY }}" >> /opt/ihaleli-batak/server/.env
+          echo "VAPID_MAILTO=${{ secrets.VAPID_MAILTO }}" >> /opt/ihaleli-batak/server/.env
 
           # 7. Restart Server
           echo "Restarting server..."

@@ -149,6 +149,20 @@ export const api = {
         return res.json();
     },
 
+    getVapidPublicKey: async () => {
+        const res = await fetch(`${BASE_URL}/api/push/vapid-public-key`);
+        return res.json();
+    },
+
+    subscribePush: async (subscription, playerId) => {
+        const res = await fetch(`${BASE_URL}/api/push/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription, playerId })
+        });
+        return res.json();
+    },
+
     // Admin API (requires admin secret)
     adminListRooms: async () => {
         const res = await fetch(`${BASE_URL}/api/admin/rooms`, { headers: getAdminHeaders() });
