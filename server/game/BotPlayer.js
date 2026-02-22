@@ -105,12 +105,20 @@ Strategy: Keep high cards and trump cards. Discard low non-trump cards. Discard 
 Think briefly about which 4 cards to discard, then on the final line write ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
 }
 
-function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats) {
+function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats, playedCardsHistory) {
     const leadSuit = currentTrick.length > 0 ? currentTrick[0].card.suit : null;
     const playedCards = currentTrick.map(t => {
         const player = seats.find(s => s?.id === t.playerId);
         return `${cardStr(t.card)} (${player?.name || '?'})`;
     }).join(', ');
+
+    // Summarise played cards by suit so the bot knows what's gone
+    const gone = { '♠': [], '♥': [], '♦': [], '♣': [] };
+    playedCardsHistory.forEach(t => gone[t.card.suit].push(t.card.rank));
+    const goneSummary = Object.entries(gone)
+        .filter(([, ranks]) => ranks.length > 0)
+        .map(([suit, ranks]) => `${suit}: ${ranks.join(' ')}`)
+        .join('  |  ');
 
     const roundScoreStr = seats
         .filter(Boolean)
@@ -143,6 +151,7 @@ function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats) 
     }
 
     return `My hand: ${handStr(hand)}
+Cards already played this round: ${goneSummary || 'none yet'}
 Cards played in this trick: ${playedCards || 'none (I lead)'}
 Trump: ${trump}${leadSuit ? `\nLead suit: ${leadSuit}` : ''}
 
@@ -321,7 +330,7 @@ async function botDecide(room, seatIndex) {
             }
 
         } else if (room.state === 'PLAYING') {
-            const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats);
+            const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
             const response = await askClaude(prompt);
             console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);
             const action = parsePlayResponse(response, hand, room);

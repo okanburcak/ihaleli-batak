@@ -25,6 +25,7 @@ class Room {
 
         // Trick State
         this.currentTrick = []; // [{playerId, card}, ...]
+        this.playedCardsHistory = []; // all completed tricks: [{playerId, card}, ...]
         this.turnIndex = 0; // 0-3, relative to seat index
         this.trickStarterIndex = 0;
 
@@ -360,6 +361,7 @@ class Room {
 
         this.state = 'BIDDING';
         this.buriedCards = [];
+        this.playedCardsHistory = [];
 
         const strongCards = ['A', 'K', 'Q', 'J'];
         let starterIndex = 0;
@@ -687,6 +689,7 @@ class Room {
         this.pendingStateChange = Date.now() + 2000;
 
         setTimeout(() => {
+            this.playedCardsHistory.push(...this.currentTrick);
             this.currentTrick = [];
             this.pendingStateChange = null;
 
