@@ -98,7 +98,7 @@ const allValid = botHand.every(c => validRanks.includes(c.rank) && validSuits.in
 assert(allValid, 'All bot hand cards are valid');
 
 // --- Test: auto-redeal in startGame ---
-console.log('\n[TEST] auto-redeal: bid starter always has at least one strong card');
+console.log('\n[TEST] auto-redeal: ALL players always have at least one strong card');
 
 const strongCards = ['A', 'K', 'Q', 'J'];
 let autoRedealOk = true;
@@ -109,13 +109,12 @@ for (let i = 0; i < 20; i++) {
     r.addPlayer('P3', null, 2);
     r.addPlayer('P4', null, 3);
     r.startGame();
-    const starterHand = r.hands[r.roundBidStarterIndex];
-    if (!starterHand.some(c => strongCards.includes(c.rank))) {
+    if (!r.hands.every(hand => hand.some(c => strongCards.includes(c.rank)))) {
         autoRedealOk = false;
         break;
     }
 }
-assert(autoRedealOk, 'Bid starter always has a strong card after startGame (20 runs)');
+assert(autoRedealOk, 'All players always have a strong card after startGame (20 runs)');
 
 // --- Summary ---
 console.log(`\n${'='.repeat(40)}`);

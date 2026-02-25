@@ -392,7 +392,7 @@ class Room {
                 starterIndex = (this.dealerIndex + 1) % 4;
             }
 
-            if (this.hands[starterIndex].some(c => strongCards.includes(c.rank))) break;
+            if (this.hands.every(hand => hand.some(c => strongCards.includes(c.rank)))) break;
         }
 
         this.validateDeckIntegrity();
