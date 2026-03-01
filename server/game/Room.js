@@ -22,6 +22,7 @@ class Room {
         this.trump = null;
         this.kitty = [];
         this.buriedCards = [];
+        this.kittySkipped = false;
 
         // Trick State
         this.currentTrick = []; // [{playerId, card}, ...]
@@ -338,7 +339,8 @@ class Room {
 
             activeBidders: this.activeBidders,
             pendingStateChange: this.pendingStateChange,
-            lastSound: this.lastSound
+            lastSound: this.lastSound,
+            kittySkipped: this.kittySkipped
         };
     }
 
@@ -362,6 +364,7 @@ class Room {
         this.state = 'BIDDING';
         this.trump = null;
         this.buriedCards = [];
+        this.kittySkipped = false;
         this.playedCardsHistory = [];
 
         const strongCards = ['A', 'K', 'Q', 'J'];
@@ -470,6 +473,7 @@ class Room {
         if (!cardsToBury || cardsToBury.length === 0) {
             // Player chose not to take the kitty.
             // Kitty remains unused.
+            this.kittySkipped = true;
             this.state = 'PLAYING';
             this.checkBotTurn();
             return { success: true, message: 'Gömü skipped' };

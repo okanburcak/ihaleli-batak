@@ -5,7 +5,11 @@ import Card from './Card';
 const GameBoard = ({ roomState, myPlayerId }) => {
     if (!roomState) return <div>Yükleniyor...</div>;
 
-    const { players, currentTrick, trump, roundScores, scores, winningBid, bids, state, currentTurn } = roomState;
+    const { players, currentTrick, trump, roundScores, scores, winningBid, bids, state, currentTurn, kittySkipped } = roomState;
+
+    const trumpColor = trump
+        ? (['♥', '♦'].includes(trump) ? 'text-red-400' : 'text-white')
+        : 'text-yellow-500';
 
     // Find my position index
     const myIndex = players.findIndex(p => p.id === myPlayerId);
@@ -97,7 +101,7 @@ const GameBoard = ({ roomState, myPlayerId }) => {
                 {/* Info Panel: Trump & Bid - Floats Top Left */}
                 <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/80 text-yellow-500 p-3 rounded-xl border border-yellow-600 shadow-xl backdrop-blur-sm transform -rotate-6 min-w-[100px]">
                     <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">KOZ</div>
-                    <div className="text-3xl md:text-4xl leading-none mb-1 text-center">{trump || '?'}</div>
+                    <div className={`text-3xl md:text-4xl leading-none mb-1 text-center ${trumpColor}`}>{trump || '?'}</div>
                     <div className="h-px bg-stone-600 my-1"></div>
                     <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">İHALE</div>
                     <div className="text-lg md:text-xl text-white text-center font-bold">
@@ -109,6 +113,12 @@ const GameBoard = ({ roomState, myPlayerId }) => {
                             <div className="text-xs text-yellow-300 text-center font-bold truncate max-w-[80px] mx-auto">
                                 {players.find(p => p.id === winningBid.playerId)?.name || ''}
                             </div>
+                        </>
+                    )}
+                    {kittySkipped && (
+                        <>
+                            <div className="h-px bg-stone-600 my-1"></div>
+                            <div className="text-xs text-orange-400 text-center font-bold">Açık El</div>
                         </>
                     )}
                 </div>
