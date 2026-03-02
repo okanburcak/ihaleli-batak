@@ -137,15 +137,14 @@ Trump cards beat all other suits. Pick the suit where I have the most and strong
 Think briefly about the best trump suit, then on the final line write ONLY: "trump ♠", "trump ♥", "trump ♦", or "trump ♣"`;
 }
 
-function buildExchangePrompt(hand, kitty, trump) {
+function buildExchangePrompt(hand, trump) {
     return `My hand (${hand.length} cards): ${handStr(hand)}
-Kitty - 4 cards I will automatically receive: ${handStr(kitty)}
 Trump: ${trump}
 
-I must choose exactly 4 cards from MY HAND to discard. I will then hold my remaining 8 + the 4 kitty cards = 12 cards.
-Strategy: Keep high cards and trump cards. Discard low non-trump cards. Discard from short suits to create voids.
+I must choose exactly 4 cards from my hand to bury face-down. After burying I will receive 4 unknown kitty cards, ending up with 12 cards.
+Strategy: Keep high cards and trump cards. Bury low non-trump cards. Bury from short suits to create voids for future ruffing.
 
-Think briefly about which 4 cards to discard, then on the final line write ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
+Think briefly about which 4 cards to bury, then on the final line write ONLY: "bury X,X,X,X" where each X is a card from my hand in format suit+rank (e.g. ♥2,♦3,♣4,♠5)`;
 }
 
 function buildPlayPrompt(hand, currentTrick, trump, roundScores, scores, seats, playedCardsHistory) {
@@ -369,7 +368,7 @@ async function botDecide(room, seatIndex) {
             }
 
         } else if (room.state === 'EXCHANGE_CARDS') {
-            const prompt = buildExchangePrompt(hand, room.kitty, room.trump);
+            const prompt = buildExchangePrompt(hand, room.trump);
             const response = await askClaude(prompt, bot.name, 'EXCHANGE');
             console.log(`[BOT] ${bot.name} EXCHANGE response: "${response}"`);
             const action = parseExchangeResponse(response, hand);
