@@ -1,7 +1,24 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const fs = require('fs');
+const path = require('path');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const BOT_MODEL = process.env.BOT_MODEL || 'claude-haiku-4-5-20251001';
+
+const LOG_DIR = path.join(__dirname, '..', 'data');
+const LOG_FILE = path.join(LOG_DIR, 'bot-reasoning.log');
+
+function logReasoning(botName, phase, fullText) {
+    const ts = new Date().toISOString();
+    const entry = `\n[${ts}] ${botName} — ${phase}\n${fullText}\n${'─'.repeat(60)}`;
+    console.log(`[BOT THINK] ${botName} (${phase}):\n${fullText}`);
+    try {
+        fs.mkdirSync(LOG_DIR, { recursive: true });
+        fs.appendFileSync(LOG_FILE, entry + '\n');
+    } catch (e) {
+        // non-fatal
+    }
+}
 
 const SYSTEM_PROMPT = `You are a skilled İhaleli Batak card game player. İhaleli Batak is a Turkish trick-taking card game for 4 individual players (no fixed teams).
 
@@ -61,15 +78,17 @@ function getRankVal(r) {
     return map[r] || parseInt(r);
 }
 
-async function askClaude(prompt) {
+async function askClaude(prompt, botName, phase) {
     const msg = await client.messages.create({
         model: BOT_MODEL,
         max_tokens: 256,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }]
     });
+    const fullText = msg.content[0].text.trim();
+    logReasoning(botName, phase, fullText);
     // Extract the last non-empty line — reasoning comes first, decision is last
-    const lines = msg.content[0].text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     return lines[lines.length - 1].toLowerCase();
 }
 
@@ -329,7 +348,7 @@ async function botDecide(room, seatIndex) {
                 return;
             }
             const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
-            const response = await askClaude(prompt);
+            const response = await askClaude(prompt, bot.name, 'BIDDING');
             console.log(`[BOT] ${bot.name} BIDDING response: "${response}"`);
             const action = parseBiddingResponse(response, minBid);
             if (action) {
@@ -340,7 +359,7 @@ async function botDecide(room, seatIndex) {
 
         } else if (room.state === 'TRUMP_SELECTION') {
             const prompt = buildTrumpPrompt(hand);
-            const response = await askClaude(prompt);
+            const response = await askClaude(prompt, bot.name, 'TRUMP');
             console.log(`[BOT] ${bot.name} TRUMP response: "${response}"`);
             const action = parseTrumpResponse(response);
             if (action) {
@@ -351,7 +370,7 @@ async function botDecide(room, seatIndex) {
 
         } else if (room.state === 'EXCHANGE_CARDS') {
             const prompt = buildExchangePrompt(hand, room.kitty, room.trump);
-            const response = await askClaude(prompt);
+            const response = await askClaude(prompt, bot.name, 'EXCHANGE');
             console.log(`[BOT] ${bot.name} EXCHANGE response: "${response}"`);
             const action = parseExchangeResponse(response, hand);
             if (action) {
@@ -368,7 +387,7 @@ async function botDecide(room, seatIndex) {
                 return;
             }
             const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
-            const response = await askClaude(prompt);
+            const response = await askClaude(prompt, bot.name, 'PLAY');
             console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);
             const action = parsePlayResponse(response, hand, room);
             if (action) {

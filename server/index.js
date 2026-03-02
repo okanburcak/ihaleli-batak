@@ -346,6 +346,19 @@ app.delete('/api/admin/rooms/:roomId', (req, res) => {
     }
 });
 
+// Bot Reasoning Log (last N lines)
+app.get('/api/admin/bot-reasoning', (req, res) => {
+    const logFile = path.join(__dirname, 'data', 'bot-reasoning.log');
+    const lines = parseInt(req.query.lines) || 200;
+    try {
+        const content = fs.readFileSync(logFile, 'utf8');
+        const allLines = content.split('\n');
+        res.type('text/plain').send(allLines.slice(-lines).join('\n'));
+    } catch {
+        res.type('text/plain').send('(no bot reasoning log yet)');
+    }
+});
+
 // --- Socket.io Signaling for Voice Chat ---
 io.on('connection', (socket) => {
     console.log('[SOCKET] User connected:', socket.id);
