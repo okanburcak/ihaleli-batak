@@ -8,8 +8,9 @@ const GameBoard = ({ roomState, myPlayerId }) => {
     const { players, currentTrick, trump, roundScores, scores, winningBid, bids, state, currentTurn, kittySkipped } = roomState;
 
     const trumpColor = trump
-        ? (['♥', '♦'].includes(trump) ? 'text-red-400' : 'text-white')
-        : 'text-yellow-500';
+        ? (['♥', '♦'].includes(trump) ? 'text-red-400' : 'text-gray-900')
+        : 'text-yellow-400';
+    const trumpBg = trump && !['♥', '♦'].includes(trump) ? 'bg-white rounded px-1' : '';
 
     // Find my position index
     const myIndex = players.findIndex(p => p.id === myPlayerId);
@@ -99,26 +100,23 @@ const GameBoard = ({ roomState, myPlayerId }) => {
                 </div>
 
                 {/* Info Panel: Trump & Bid - Floats Top Left */}
-                <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/80 text-yellow-500 p-3 rounded-xl border border-yellow-600 shadow-xl backdrop-blur-sm transform -rotate-6 min-w-[100px]">
-                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">KOZ</div>
-                    <div className={`text-3xl md:text-4xl leading-none mb-1 text-center ${trumpColor}`}>{trump || '?'}</div>
-                    <div className="h-px bg-stone-600 my-1"></div>
-                    <div className="font-bold text-xs uppercase tracking-wider text-stone-400 text-center">İHALE</div>
-                    <div className="text-lg md:text-xl text-white text-center font-bold">
-                        {winningBid.amount > 0 ? winningBid.amount : '-'}
+                <div className="absolute -top-16 -left-16 md:-top-20 md:-left-24 bg-stone-900/90 p-3 rounded-xl border border-yellow-700/60 shadow-xl backdrop-blur-sm transform -rotate-6 min-w-[90px]">
+                    <div className="font-bold text-[10px] uppercase tracking-widest text-stone-500 text-center mb-0.5">KOZ</div>
+                    <div className={`text-4xl md:text-5xl leading-none text-center inline-block w-full ${trumpColor} ${trumpBg}`}>{trump || '?'}</div>
+                    <div className="h-px bg-stone-700 my-2"></div>
+                    <div className="font-bold text-[10px] uppercase tracking-widest text-stone-500 text-center mb-0.5">İHALE</div>
+                    <div className="text-xl md:text-2xl text-yellow-400 text-center font-bold">
+                        {winningBid.amount > 0 ? winningBid.amount : '–'}
                     </div>
                     {winningBid.playerId && (
-                        <>
-                            <div className="h-px bg-stone-600 my-1"></div>
-                            <div className="text-xs text-yellow-300 text-center font-bold truncate max-w-[80px] mx-auto">
-                                {players.find(p => p.id === winningBid.playerId)?.name || ''}
-                            </div>
-                        </>
+                        <div className="text-[10px] text-yellow-300/80 text-center font-semibold truncate max-w-[80px] mx-auto mt-0.5">
+                            {players.find(p => p.id === winningBid.playerId)?.name || ''}
+                        </div>
                     )}
                     {kittySkipped && (
                         <>
-                            <div className="h-px bg-stone-600 my-1"></div>
-                            <div className="text-xs text-orange-400 text-center font-bold">Açık El</div>
+                            <div className="h-px bg-stone-700 my-2"></div>
+                            <div className="text-[10px] text-orange-400 text-center font-bold uppercase tracking-wider">Açık El</div>
                         </>
                     )}
                 </div>
