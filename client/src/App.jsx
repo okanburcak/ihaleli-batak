@@ -27,7 +27,7 @@ function App() {
 
     const POLLING_RATE = 1000;
 
-    const { playSound } = useSound();
+    const { playSound, isMuted, toggleMute } = useSound();
     const prevRoomState = useRef(null);
     const roundEndSoundPlayed = useRef(false);
     const [showSuperAdmin, setShowSuperAdmin] = useState(false);
@@ -698,6 +698,15 @@ function App() {
                         {errorMsg}
                     </div>
                 )}
+
+                {/* Mute Button */}
+                <button
+                    onClick={toggleMute}
+                    className="fixed top-3 right-3 z-50 bg-black/50 hover:bg-black/80 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg shadow-lg transition"
+                    title={isMuted ? 'Sesi Aç' : 'Sessiz Mod'}
+                >
+                    {isMuted ? '🔇' : '🔊'}
+                </button>
 
                 {/* Bot Replaced Banner */}
                 {botReplacedBanner && (

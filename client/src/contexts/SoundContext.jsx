@@ -6,7 +6,7 @@ export const useSound = () => useContext(SoundContext);
 
 export const SoundProvider = ({ children }) => {
     const audioRefs = useRef({});
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(() => localStorage.getItem('batak_muted') === 'true');
 
     const sounds = {
         click: '/sounds/click.ogg',
@@ -37,7 +37,10 @@ export const SoundProvider = ({ children }) => {
         }
     };
 
-    const toggleMute = () => setIsMuted(prev => !prev);
+    const toggleMute = () => setIsMuted(prev => {
+        localStorage.setItem('batak_muted', !prev);
+        return !prev;
+    });
 
     return (
         <SoundContext.Provider value={{ playSound, isMuted, toggleMute }}>
