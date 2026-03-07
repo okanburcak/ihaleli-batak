@@ -116,6 +116,26 @@ for (let i = 0; i < 20; i++) {
 }
 assert(autoRedealOk, 'All players always have a strong card after startGame (20 runs)');
 
+// --- Test: bot takeover ---
+console.log('\n[TEST] bot takeover: human replaces bot seat');
+{
+    const room = new Room('takeover-test');
+    room.addPlayer('Human1', null, 0);
+    room.addBotPlayer(1);
+    room.addBotPlayer(2);
+    room.addBotPlayer(3);
+
+    const before = room.seats[1];
+    assert(before?.isBot === true, 'Seat 1 is a bot before takeover');
+
+    const result = room.addPlayer('NewHuman', null, 1);
+    assert(result.success === true, 'Takeover returns success');
+    assert(room.seats[1]?.name === 'NewHuman', 'Seat 1 name is NewHuman');
+    assert(!room.seats[1]?.isBot, 'Seat 1 is no longer a bot');
+    assert(room.players.some(p => p.name === 'NewHuman'), 'NewHuman in players list');
+    assert(!room.players.some(p => p.id === before.id), 'Old bot removed from players');
+}
+
 // --- Summary ---
 console.log(`\n${'='.repeat(40)}`);
 console.log(`Results: ${passed} passed, ${failed} failed`);

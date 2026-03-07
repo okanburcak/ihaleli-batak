@@ -156,6 +156,34 @@ class Room {
         const existingPlayer = this.seats[seatToJoin];
 
         if (existingPlayer) {
+            // Bot takeover — always allowed
+            if (existingPlayer.isBot) {
+                const id = crypto.randomUUID();
+                const token = crypto.randomUUID();
+                this.players = this.players.filter(p => p.id !== existingPlayer.id);
+                const newPlayer = {
+                    id,
+                    token,
+                    name: name || `Player ${seatToJoin + 1}`,
+                    seatIndex: seatToJoin,
+                    isAdmin: existingPlayer.isAdmin,
+                    connected: true,
+                    lastSeen: Date.now()
+                };
+                this.seats[seatToJoin] = newPlayer;
+                this.players.push(newPlayer);
+                if (this.scores[existingPlayer.id] !== undefined) {
+                    this.scores[newPlayer.id] = this.scores[existingPlayer.id];
+                    delete this.scores[existingPlayer.id];
+                }
+                if (this.roundScores[existingPlayer.id] !== undefined) {
+                    this.roundScores[newPlayer.id] = this.roundScores[existingPlayer.id];
+                    delete this.roundScores[existingPlayer.id];
+                }
+                this.lastEvent = { id: crypto.randomUUID(), type: 'bot_replaced', seatIndex: seatToJoin, newName: newPlayer.name };
+                return { success: true, token, playerId: id, message: 'Bot seat taken over.' };
+            }
+
             // Reconnect Logic
             // Only allow if Token matches? OR if using Code?
             // If explicit seat join (public) and someone is there:
