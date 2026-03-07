@@ -49,7 +49,7 @@ export const api = {
         const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/join`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, code, seatIndex })
+            body: JSON.stringify({ name, code, seatIndex, pushClientId: getPushClientId() })
         });
         return res.json();
     },

@@ -151,12 +151,18 @@ app.post('/api/rooms', (req, res) => {
 // Join Room
 app.post('/api/rooms/:roomId/join', (req, res) => {
     const { roomId } = req.params;
-    const { name, code, seatIndex } = req.body;
+    const { name, code, seatIndex, pushClientId } = req.body;
 
     const room = getRoom(roomId);
     const result = room.addPlayer(name, code, seatIndex);
 
     if (result.success) {
+        // Link push subscription from pushClientId → playerId so pushRoom can find it
+        if (pushClientId && pushSubscriptions[pushClientId]) {
+            pushSubscriptions[result.playerId] = pushSubscriptions[pushClientId];
+            savePushSubscriptions();
+            console.log(`[PUSH] Linked pushClientId ${pushClientId} → playerId ${result.playerId}`);
+        }
         pushRoom(room, result.playerId, { title: 'Oyuncu Katıldı 👤', body: `${name} masaya katıldı!` });
         res.json(result);
     } else {
