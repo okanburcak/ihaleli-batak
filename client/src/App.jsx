@@ -505,7 +505,8 @@ function App() {
                                         <div className="p-6 grid grid-cols-2 gap-4 flex-grow">
                                             {[0, 1, 2, 3].map(seatIdx => {
                                                 const seat = room.seats[seatIdx];
-                                                const isTaken = !!seat;
+                                                const isTaken = !!seat && !seat.isBot;
+                                                const isBot = !!seat?.isBot;
                                                 return (
                                                     <button
                                                         key={seatIdx}
@@ -514,17 +515,25 @@ function App() {
                                                         className={`
                                                             relative p-3 rounded-lg flex flex-col items-center justify-center gap-2 aspect-square transition-all
                                                             ${isTaken
-                                                                ? 'bg-green-900/40 border border-green-800'
-                                                                : 'bg-green-700/30 border border-green-500 hover:bg-green-600 hover:scale-105 cursor-pointer hover:shadow-lg group'
+                                                                ? 'bg-green-900/40 border border-green-800 cursor-not-allowed'
+                                                                : isBot
+                                                                    ? 'bg-blue-900/40 border border-blue-600 hover:bg-blue-700 hover:scale-105 cursor-pointer hover:shadow-lg group'
+                                                                    : 'bg-green-700/30 border border-green-500 hover:bg-green-600 hover:scale-105 cursor-pointer hover:shadow-lg group'
                                                             }
                                                         `}
                                                     >
                                                         {/* Chair Icon */}
-                                                        <div className={`w-8 h-8 rounded-t-lg ${isTaken ? 'bg-gray-500' : 'bg-yellow-100 group-hover:bg-yellow-400'} transition-colors`}></div>
-                                                        <div className={`w-10 h-1 rounded-sm ${isTaken ? 'bg-gray-600' : 'bg-yellow-200 group-hover:bg-yellow-500'} transition-colors`}></div>
+                                                        <div className={`w-8 h-8 rounded-t-lg ${isTaken ? 'bg-gray-500' : isBot ? 'bg-blue-300 group-hover:bg-blue-400' : 'bg-yellow-100 group-hover:bg-yellow-400'} transition-colors`}></div>
+                                                        <div className={`w-10 h-1 rounded-sm ${isTaken ? 'bg-gray-600' : isBot ? 'bg-blue-400 group-hover:bg-blue-500' : 'bg-yellow-200 group-hover:bg-yellow-500'} transition-colors`}></div>
 
                                                         {isTaken ? (
                                                             <span className="text-xs text-gray-400 font-mono truncate w-full text-center">{seat.name}</span>
+                                                        ) : isBot ? (
+                                                            <>
+                                                                <span className="text-lg">🤖</span>
+                                                                <span className="text-xs text-blue-300 font-bold group-hover:text-white truncate w-full text-center">{seat.name}</span>
+                                                                <span className="text-[10px] text-blue-400 group-hover:text-white">AL</span>
+                                                            </>
                                                         ) : (
                                                             <span className="text-xs text-green-300 font-bold group-hover:text-white">OTUR</span>
                                                         )}
