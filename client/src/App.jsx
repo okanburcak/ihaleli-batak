@@ -34,6 +34,8 @@ function App() {
     const lastPlayedSoundId = useRef(null);
     const [botReplacedBanner, setBotReplacedBanner] = useState(null);
     const lastEventIdRef = useRef(null);
+    const [activeEmote, setActiveEmote] = useState(null); // { emoji, senderName }
+    const [showEmotePicker, setShowEmotePicker] = useState(false);
 
     // Mobile detection & Window Width
     const [pageWidth, setPageWidth] = useState(window.innerWidth);
@@ -137,7 +139,7 @@ function App() {
             }
         }
 
-        // 4. Manual Sounds (Polling)
+        // 4. Manual Sounds / Emotes (Polling)
         if (roomState.lastSound) {
             const { id, type, from } = roomState.lastSound;
             if (id !== lastPlayedSoundId.current) {
@@ -147,9 +149,12 @@ function App() {
 
                 lastPlayedSoundId.current = id;
 
-                // Show toast
-                const sender = roomState.players.find(p => p.id === from)?.name || 'Someone';
-                if (from !== myPlayerId) {
+                const sender = roomState.players.find(p => p.id === from)?.name || '?';
+                const EMOTES = ['👏','🔥','😬','💀','😴','❤️','🎉','🤦'];
+                if (EMOTES.includes(type)) {
+                    setActiveEmote({ emoji: type, senderName: sender });
+                    setTimeout(() => setActiveEmote(null), 2500);
+                } else if (from !== myPlayerId) {
                     setErrorMsg(`${sender}: ${type === 'hurry' ? 'Hadi!' : 'Yuh!'}`);
                     setTimeout(() => setErrorMsg(''), 2000);
                 }
@@ -703,22 +708,41 @@ function App() {
                         >
                             YÖNETİCİ
                         </button>
-                        {/* Sound Buttons */}
-                        <button
-                            onClick={() => {
-                                const type = Math.random() < 0.5 ? 'hurry' : 'hadi';
-                                api.broadcastSound(currentRoomId, type);
-                            }}
-                            className="text-xs bg-yellow-600/50 hover:bg-yellow-600 px-2 py-1 rounded text-white border border-yellow-500"
-                        >
-                            HADİ!
-                        </button>
-                        <button
-                            onClick={() => api.broadcastSound(currentRoomId, 'shame')}
-                            className="text-xs bg-purple-600/50 hover:bg-purple-600 px-2 py-1 rounded text-white border border-purple-500"
-                        >
-                            YUH!
-                        </button>
+                        {/* Emote Picker */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowEmotePicker(p => !p)}
+                                className="text-base bg-stone-700/60 hover:bg-stone-600 px-2 py-1 rounded border border-stone-500"
+                                title="Tepki gönder"
+                            >
+                                😊
+                            </button>
+                            {showEmotePicker && (
+                                <div className="absolute bottom-9 left-0 bg-stone-800 border border-stone-600 rounded-xl p-2 flex gap-1 shadow-2xl z-50">
+                                    {['👏','🔥','😬','💀','😴','❤️','🎉','🤦'].map(emoji => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => {
+                                                api.broadcastSound(currentRoomId, emoji);
+                                                setShowEmotePicker(false);
+                                            }}
+                                            className="text-xl hover:scale-125 transition-transform px-1"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                    <div className="w-px bg-stone-600 mx-1" />
+                                    <button
+                                        onClick={() => { api.broadcastSound(currentRoomId, 'hadi'); setShowEmotePicker(false); }}
+                                        className="text-xs bg-yellow-600/60 hover:bg-yellow-500 px-2 rounded text-white font-bold"
+                                    >HADİ</button>
+                                    <button
+                                        onClick={() => { api.broadcastSound(currentRoomId, 'shame'); setShowEmotePicker(false); }}
+                                        className="text-xs bg-purple-600/60 hover:bg-purple-500 px-2 rounded text-white font-bold"
+                                    >YUH</button>
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={handleLeave}
                             className="text-xs bg-gray-600/50 hover:bg-gray-600 px-2 py-1 rounded text-white border border-gray-500"
@@ -752,6 +776,14 @@ function App() {
                 >
                     {isMuted ? '🔇' : '🔊'}
                 </button>
+
+                {/* Emote Bubble */}
+                {activeEmote && (
+                    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center animate-bounce-slow pointer-events-none">
+                        <div className="text-7xl drop-shadow-2xl">{activeEmote.emoji}</div>
+                        <div className="text-white text-sm font-bold bg-black/60 px-3 py-1 rounded-full mt-1">{activeEmote.senderName}</div>
+                    </div>
+                )}
 
                 {/* Bot Replaced Banner */}
                 {botReplacedBanner && (
