@@ -43,6 +43,8 @@ class Room {
         // Helper to track timeouts (e.g. end of trick pause)
         this.pendingStateChange = null;
         this.pendingBotDecisions = {}; // { seatIndex: true } when bot decision is in flight
+        this.lastSound = null;
+        this.lastEvent = null;
     }
 
     isValidCard(card) {
@@ -368,6 +370,7 @@ class Room {
             activeBidders: this.activeBidders,
             pendingStateChange: this.pendingStateChange,
             lastSound: this.lastSound,
+            lastEvent: this.lastEvent,
             kittySkipped: this.kittySkipped
         };
     }
