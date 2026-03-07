@@ -45,6 +45,7 @@ class Room {
         this.pendingBotDecisions = {}; // { seatIndex: true } when bot decision is in flight
         this.lastSound = null;
         this.lastEvent = null;
+        this.lastRoundSummary = null;
     }
 
     isValidCard(card) {
@@ -391,6 +392,7 @@ class Room {
             pendingStateChange: this.pendingStateChange,
             lastSound: this.lastSound,
             lastEvent: this.lastEvent,
+            lastRoundSummary: this.lastRoundSummary,
             kittySkipped: this.kittySkipped
         };
     }
@@ -792,6 +794,27 @@ class Room {
                 else this.scores[p.id] += t;
             }
         });
+
+        // Build round summary (scores already updated above)
+        this.lastRoundSummary = {
+            bid,
+            tricksTaken: took,
+            bidSuccess: took >= bid,
+            bidderName: this.seats.find(p => p?.id === bidderId)?.name || '?',
+            players: this.seats.filter(Boolean).map(p => {
+                const tricks = this.roundScores[p.id] || 0;
+                const isBidder = p.id === bidderId;
+                const delta = isBidder ? bidderScore : (tricks === 0 ? -bid : tricks);
+                return {
+                    name: p.name,
+                    tricks,
+                    delta,
+                    totalScore: this.scores[p.id] || 0,
+                    isBidder,
+                    batak: !isBidder && tricks === 0
+                };
+            })
+        };
 
         // Check Winner
         let winner = null;

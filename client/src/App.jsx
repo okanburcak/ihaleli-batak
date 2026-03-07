@@ -570,6 +570,51 @@ function App() {
             return null; // Should not happen given initial view is LANDING
         }
 
+        if (roomState?.state === 'WAITING' && roomState?.lastRoundSummary) {
+            const s = roomState.lastRoundSummary;
+            return (
+                <div className="min-h-screen bg-green-950 flex items-center justify-center p-4">
+                    <div className="bg-stone-900 border border-yellow-700/50 rounded-2xl shadow-2xl w-full max-w-md text-white">
+                        {/* Header */}
+                        <div className="bg-stone-800 rounded-t-2xl px-6 py-4 border-b border-stone-700">
+                            <h2 className="text-xl font-bold text-yellow-400 text-center">El Bitti</h2>
+                            <p className="text-center text-stone-400 text-sm mt-1">
+                                <span className="font-semibold text-white">{s.bidderName}</span>
+                                {' '}{s.bid} ihale etti, {s.tricksTaken} el aldı{' '}
+                                <span className={s.bidSuccess ? 'text-green-400' : 'text-red-400'}>
+                                    {s.bidSuccess ? '✓' : '✗'}
+                                </span>
+                            </p>
+                        </div>
+
+                        {/* Player rows */}
+                        <div className="px-6 py-4 space-y-2">
+                            {s.players.map((p, i) => (
+                                <div key={i} className={`flex items-center justify-between rounded-lg px-4 py-3 ${p.batak ? 'bg-red-950/60 border border-red-700/40' : p.isBidder ? 'bg-yellow-950/40 border border-yellow-700/30' : 'bg-stone-800/60'}`}>
+                                    <div className="flex items-center gap-2">
+                                        {p.isBidder && <span className="text-xs bg-yellow-600 text-black px-1.5 py-0.5 rounded font-bold">İHALE</span>}
+                                        {p.batak && <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">BATAK</span>}
+                                        <span className="font-semibold">{p.name}</span>
+                                        <span className="text-stone-400 text-sm">{p.tricks} el</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-sm font-bold ${p.delta > 0 ? 'text-green-400' : p.delta < 0 ? 'text-red-400' : 'text-stone-400'}`}>
+                                            {p.delta > 0 ? `+${p.delta}` : p.delta}
+                                        </span>
+                                        <span className="text-white font-bold w-10 text-right">{p.totalScore}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="px-6 pb-5 text-center text-stone-500 text-xs">
+                            Yeni el başlıyor...
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         if (roomState?.state === 'WAITING') {
             return (
                 <div className="min-h-screen bg-green-900 flex flex-col items-center justify-center text-white">
