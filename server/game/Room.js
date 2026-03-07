@@ -182,6 +182,26 @@ class Room {
                     this.roundScores[newPlayer.id] = this.roundScores[existingPlayer.id];
                     delete this.roundScores[existingPlayer.id];
                 }
+                // Migrate bidding state
+                if (this.winningBid?.playerId === existingPlayer.id) {
+                    this.winningBid = { ...this.winningBid, playerId: newPlayer.id };
+                }
+                if (this.currentBidder === existingPlayer.id) {
+                    this.currentBidder = newPlayer.id;
+                }
+                if (this.activeBidders) {
+                    this.activeBidders = this.activeBidders.map(id => id === existingPlayer.id ? newPlayer.id : id);
+                }
+                if (this.bids[existingPlayer.id] !== undefined) {
+                    this.bids[newPlayer.id] = this.bids[existingPlayer.id];
+                    delete this.bids[existingPlayer.id];
+                }
+                // Migrate current trick
+                this.currentTrick = this.currentTrick.map(entry =>
+                    entry.playerId === existingPlayer.id
+                        ? { ...entry, playerId: newPlayer.id }
+                        : entry
+                );
                 this.lastEvent = { id: crypto.randomUUID(), type: 'bot_replaced', seatIndex: seatToJoin, newName: newPlayer.name };
                 return { success: true, token, playerId: id, message: 'Bot seat taken over.' };
             }
