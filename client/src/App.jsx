@@ -32,6 +32,8 @@ function App() {
     const roundEndSoundPlayed = useRef(false);
     const [showSuperAdmin, setShowSuperAdmin] = useState(false);
     const lastPlayedSoundId = useRef(null);
+    const [botReplacedBanner, setBotReplacedBanner] = useState(null);
+    const lastEventIdRef = useRef(null);
 
     // Mobile detection & Window Width
     const [pageWidth, setPageWidth] = useState(window.innerWidth);
@@ -225,6 +227,13 @@ function App() {
 
     const updateState = (data) => {
         setRoomState(data);
+        if (data.lastEvent && data.lastEvent.id !== lastEventIdRef.current) {
+            lastEventIdRef.current = data.lastEvent.id;
+            if (data.lastEvent.type === 'bot_replaced') {
+                setBotReplacedBanner(`🤖 Bot ${data.lastEvent.seatIndex + 1} → ${data.lastEvent.newName}`);
+                setTimeout(() => setBotReplacedBanner(null), 3000);
+            }
+        }
         if (data.myHand) setMyHand(data.myHand);
 
         if (data.currentTurn === myPlayerId || (data.me && data.currentTurn === data.me.id)) {
@@ -687,6 +696,13 @@ function App() {
                 {errorMsg && (
                     <div className="absolute top-20 z-50 bg-red-600 text-white px-4 py-2 rounded shadow-lg animate-bounce">
                         {errorMsg}
+                    </div>
+                )}
+
+                {/* Bot Replaced Banner */}
+                {botReplacedBanner && (
+                    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-700 text-white px-6 py-2 rounded-full shadow-xl text-sm font-bold">
+                        {botReplacedBanner}
                     </div>
                 )}
 
