@@ -123,7 +123,7 @@ app.get('/api/rooms', (req, res) => {
         return {
             id: r.roomId,
             playerCount: r.players.filter(p => !!p).length,
-            seats: r.seats.map(s => s ? { name: s.name, connected: s.connected } : null),
+            seats: r.seats.map(s => s ? { name: s.name, connected: s.connected, isBot: !!s.isBot } : null),
             state: r.state,
             winningScore: r.winningScore,
             lastSeen: Date.now()
