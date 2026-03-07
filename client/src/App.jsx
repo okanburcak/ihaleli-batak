@@ -718,7 +718,7 @@ function App() {
                                 😊
                             </button>
                             {showEmotePicker && (
-                                <div className="absolute bottom-9 left-0 bg-stone-800 border border-stone-600 rounded-xl p-2 flex gap-1 shadow-2xl z-50">
+                                <div className="fixed top-10 left-2 bg-stone-800 border border-stone-600 rounded-xl p-2 flex gap-1 shadow-2xl z-[200]">
                                     {['👏','🔥','😬','💀','😴','❤️','🎉','🤦'].map(emoji => (
                                         <button
                                             key={emoji}
