@@ -348,6 +348,11 @@ async function botDecide(room, seatIndex) {
             }
             const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
             const response = await askClaude(prompt, bot.name, 'BIDDING');
+            // Re-check: seat may have been taken over by a human while API call was in flight
+            if (!room.seats[seatIndex]?.isBot) {
+                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
+                return;
+            }
             console.log(`[BOT] ${bot.name} BIDDING response: "${response}"`);
             const action = parseBiddingResponse(response, minBid);
             if (action) {
@@ -359,6 +364,11 @@ async function botDecide(room, seatIndex) {
         } else if (room.state === 'TRUMP_SELECTION') {
             const prompt = buildTrumpPrompt(hand);
             const response = await askClaude(prompt, bot.name, 'TRUMP');
+            // Re-check: seat may have been taken over by a human while API call was in flight
+            if (!room.seats[seatIndex]?.isBot) {
+                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
+                return;
+            }
             console.log(`[BOT] ${bot.name} TRUMP response: "${response}"`);
             const action = parseTrumpResponse(response);
             if (action) {
@@ -370,6 +380,11 @@ async function botDecide(room, seatIndex) {
         } else if (room.state === 'EXCHANGE_CARDS') {
             const prompt = buildExchangePrompt(hand, room.trump);
             const response = await askClaude(prompt, bot.name, 'EXCHANGE');
+            // Re-check: seat may have been taken over by a human while API call was in flight
+            if (!room.seats[seatIndex]?.isBot) {
+                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
+                return;
+            }
             console.log(`[BOT] ${bot.name} EXCHANGE response: "${response}"`);
             const action = parseExchangeResponse(response, hand);
             if (action) {
@@ -387,6 +402,11 @@ async function botDecide(room, seatIndex) {
             }
             const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
             const response = await askClaude(prompt, bot.name, 'PLAY');
+            // Re-check: seat may have been taken over by a human while API call was in flight
+            if (!room.seats[seatIndex]?.isBot) {
+                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
+                return;
+            }
             console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);
             const action = parsePlayResponse(response, hand, room);
             if (action) {
