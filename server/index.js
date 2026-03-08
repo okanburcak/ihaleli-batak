@@ -55,8 +55,15 @@ const sendPush = (subscription, payload) =>
             }
         });
 
-const pushAll = (payload) =>
-    Object.values(pushSubscriptions).forEach(sub => sendPush(sub, payload));
+const pushAll = (payload) => {
+    const seen = new Set();
+    Object.values(pushSubscriptions).forEach(sub => {
+        if (!seen.has(sub.endpoint)) {
+            seen.add(sub.endpoint);
+            sendPush(sub, payload);
+        }
+    });
+};
 
 const pushRoom = (room, excludePlayerId, payload) =>
     room.players.filter(p => p && p.id !== excludePlayerId && pushSubscriptions[p.id])
