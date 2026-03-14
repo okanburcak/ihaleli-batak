@@ -80,7 +80,7 @@ function App() {
                                 key={`${card.suit}-${card.rank}`}
                                 className={`
                                     relative
-                                    transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
+                                    transition-transform duration-150 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
                                     ${idx !== 0 ? '-ml-2' : ''}
                                 `}
                                 style={{
