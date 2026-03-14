@@ -77,7 +77,7 @@ function App() {
                     >
                         {rowCards.map((card, idx) => (
                             <div
-                                key={`${card.suit}-${card.rank}-${idx}`}
+                                key={`${card.suit}-${card.rank}`}
                                 className={`
                                     relative
                                     transform transition-all duration-300 hover:-translate-y-6 hover:scale-110 hover:z-50 origin-bottom
