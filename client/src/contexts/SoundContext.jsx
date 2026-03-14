@@ -9,13 +9,13 @@ export const SoundProvider = ({ children }) => {
     const [isMuted, setIsMuted] = useState(() => localStorage.getItem('batak_muted') === 'true');
 
     const sounds = {
-        click: '/sounds/click.ogg',
-        play: '/sounds/play.ogg',
-        turn: '/sounds/turn.ogg',
-        win: '/sounds/win.ogg',
-        hurry: '/sounds/hurry.mp4',
-        hadi: '/sounds/hadi.ogg',
-        shame: '/sounds/shame.mp4',
+        click: 'https://assets.okanburcak.com/sounds/click.ogg',
+        play: 'https://assets.okanburcak.com/sounds/play.ogg',
+        turn: 'https://assets.okanburcak.com/sounds/turn.ogg',
+        win: 'https://assets.okanburcak.com/sounds/win.ogg',
+        hurry: 'https://assets.okanburcak.com/sounds/hurry.mp4',
+        hadi: 'https://assets.okanburcak.com/sounds/hadi.ogg',
+        shame: 'https://assets.okanburcak.com/sounds/shame.mp4',
     };
 
     useEffect(() => {
