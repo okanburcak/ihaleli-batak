@@ -217,6 +217,7 @@ app.post('/api/rooms/:roomId/start', resolvePlayer, requirePlayer, (req, res) =>
     }
 
     room.startGame();
+    pushRoom(room, null, { title: 'Oyun Başladı! 🃏', body: `Masa #${roomId} oyunu başladı. Hadi oyna!` });
     res.json({ success: true });
 });
 
