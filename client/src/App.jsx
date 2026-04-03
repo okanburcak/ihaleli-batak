@@ -719,32 +719,35 @@ function App() {
                                 😊
                             </button>
                             {showEmotePicker && (
-                                <div className="fixed top-10 left-2 bg-stone-800 border border-stone-600 rounded-xl p-2 flex gap-1 shadow-2xl z-[200]">
-                                    {['👏','🔥','😬','💀','😴','❤️','🎉','🤦'].map(emoji => (
+                                <div className="fixed top-10 left-2 bg-stone-800 border border-stone-600 rounded-xl p-2 flex flex-col gap-1 shadow-2xl z-[200]">
+                                    <div className="flex gap-1">
+                                        {['👏','🔥','😬','💀','😴','❤️','🎉','🤦'].map(emoji => (
+                                            <button
+                                                key={emoji}
+                                                onClick={() => {
+                                                    api.broadcastSound(currentRoomId, emoji);
+                                                    setShowEmotePicker(false);
+                                                }}
+                                                className="text-xl hover:scale-125 transition-transform px-1"
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-1">
                                         <button
-                                            key={emoji}
-                                            onClick={() => {
-                                                api.broadcastSound(currentRoomId, emoji);
-                                                setShowEmotePicker(false);
-                                            }}
-                                            className="text-xl hover:scale-125 transition-transform px-1"
-                                        >
-                                            {emoji}
-                                        </button>
-                                    ))}
-                                    <div className="w-px bg-stone-600 mx-1" />
-                                    <button
-                                        onClick={() => { api.broadcastSound(currentRoomId, 'hadi'); setShowEmotePicker(false); }}
-                                        className="text-xs bg-yellow-600/60 hover:bg-yellow-500 px-2 rounded text-white font-bold"
-                                    >HADİ</button>
-                                    <button
-                                        onClick={() => { api.broadcastSound(currentRoomId, 'shame'); setShowEmotePicker(false); }}
-                                        className="text-xs bg-purple-600/60 hover:bg-purple-500 px-2 rounded text-white font-bold"
-                                    >YUH</button>
-                                    <button
-                                        onClick={() => { api.broadcastSound(currentRoomId, 'cemcuk'); setShowEmotePicker(false); }}
-                                        className="text-xs bg-green-700/60 hover:bg-green-600 px-2 rounded text-white font-bold"
-                                    >CEMCUK</button>
+                                            onClick={() => { api.broadcastSound(currentRoomId, 'hadi'); setShowEmotePicker(false); }}
+                                            className="text-xs bg-yellow-600/60 hover:bg-yellow-500 px-2 py-1 rounded text-white font-bold flex-1"
+                                        >HADİ</button>
+                                        <button
+                                            onClick={() => { api.broadcastSound(currentRoomId, 'shame'); setShowEmotePicker(false); }}
+                                            className="text-xs bg-purple-600/60 hover:bg-purple-500 px-2 py-1 rounded text-white font-bold flex-1"
+                                        >YUH</button>
+                                        <button
+                                            onClick={() => { api.broadcastSound(currentRoomId, 'cemcuk'); setShowEmotePicker(false); }}
+                                            className="text-xs bg-green-700/60 hover:bg-green-600 px-2 py-1 rounded text-white font-bold flex-1"
+                                        >CEMCUK</button>
+                                    </div>
                                 </div>
                             )}
                         </div>
