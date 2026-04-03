@@ -16,6 +16,7 @@ export const SoundProvider = ({ children }) => {
         hurry: 'https://assets.okanburcak.com/sounds/hurry.mp4',
         hadi: 'https://assets.okanburcak.com/sounds/hadi.ogg',
         shame: 'https://assets.okanburcak.com/sounds/shame.mp4',
+        cemcuk: 'https://assets.okanburcak.com/sounds/cemcuk.ogg',
     };
 
     useEffect(() => {

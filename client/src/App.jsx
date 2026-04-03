@@ -146,6 +146,7 @@ function App() {
                 if (type === 'hurry') playSound('hurry');
                 if (type === 'hadi') playSound('hadi');
                 if (type === 'shame') playSound('shame');
+                if (type === 'cemcuk') playSound('cemcuk');
 
                 lastPlayedSoundId.current = id;
 
@@ -740,6 +741,10 @@ function App() {
                                         onClick={() => { api.broadcastSound(currentRoomId, 'shame'); setShowEmotePicker(false); }}
                                         className="text-xs bg-purple-600/60 hover:bg-purple-500 px-2 rounded text-white font-bold"
                                     >YUH</button>
+                                    <button
+                                        onClick={() => { api.broadcastSound(currentRoomId, 'cemcuk'); setShowEmotePicker(false); }}
+                                        className="text-xs bg-green-700/60 hover:bg-green-600 px-2 rounded text-white font-bold"
+                                    >CEMCUK</button>
                                 </div>
                             )}
                         </div>
