@@ -46,6 +46,7 @@ class Room {
         this.lastSound = null;
         this.lastEvent = null;
         this.lastRoundSummary = null;
+        this.autopilotPlayers = new Set(); // playerIds of human players in autopilot mode
     }
 
     isValidCard(card) {
@@ -284,6 +285,7 @@ class Room {
         // Remove scores (optional, but cleaner for full leave)
         delete this.scores[playerId];
         delete this.roundScores[playerId];
+        this.autopilotPlayers.delete(playerId);
 
         // If game is in progress, this might break things. 
         // For now, we assume this is used in LOBBY (WAITING) state mostly.
@@ -322,16 +324,37 @@ class Room {
     checkBotTurn() {
         if (this.pendingStateChange) return; // Trick is resolving, wait
         const currentPlayer = this.seats[this.turnIndex];
-        if (!currentPlayer || !currentPlayer.isBot) return;
+        if (!currentPlayer) return;
+        const isAutopilot = this.autopilotPlayers.has(currentPlayer.id);
+        if (!currentPlayer.isBot && !isAutopilot) return;
         if (this.pendingBotDecisions[this.turnIndex]) return; // Already scheduled
 
         const { botDecide } = require('./BotPlayer');
         const seatIndex = this.turnIndex;
         this.pendingBotDecisions[seatIndex] = true;
+        const delay = isAutopilot ? 1500 : 1000; // slight extra delay for autopilot so it feels less robotic
         setTimeout(() => {
             delete this.pendingBotDecisions[seatIndex];
             botDecide(this, seatIndex);
-        }, 1000);
+        }, delay);
+    }
+
+    toggleAutopilot(playerId) {
+        const player = this.seats.find(s => s?.id === playerId);
+        if (!player || player.isBot) return { error: 'Not a valid player' };
+        if (this.state !== 'PLAYING') return { error: 'Autopilot only available during play' };
+
+        if (this.autopilotPlayers.has(playerId)) {
+            this.autopilotPlayers.delete(playerId);
+            console.log(`[AUTOPILOT] ${player.name} disabled autopilot`);
+            return { success: true, autopilot: false };
+        } else {
+            this.autopilotPlayers.add(playerId);
+            console.log(`[AUTOPILOT] ${player.name} enabled autopilot`);
+            // Trigger immediately if it's their turn
+            this.checkBotTurn();
+            return { success: true, autopilot: true };
+        }
     }
 
     getPlayerState(playerId) {
@@ -359,7 +382,8 @@ class Room {
             me: {
                 id: player.id,
                 seatIndex: player.seatIndex,
-                isAdmin: player.isAdmin
+                isAdmin: player.isAdmin,
+                isAutopilot: this.autopilotPlayers.has(playerId)
             }
         };
     }

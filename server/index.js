@@ -321,6 +321,16 @@ app.post('/api/rooms/:roomId/add-bot', resolvePlayer, requirePlayer, (req, res) 
     res.json(result);
 });
 
+app.post('/api/rooms/:roomId/autopilot', resolvePlayer, requirePlayer, (req, res) => {
+    const { roomId } = req.params;
+    const room = rooms[roomId];
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    const result = room.toggleAutopilot(req.playerId);
+    if (result.error) return res.status(400).json(result);
+    res.json(result);
+});
+
 // --- Super Admin Routes (protected by admin secret) ---
 
 // List all rooms

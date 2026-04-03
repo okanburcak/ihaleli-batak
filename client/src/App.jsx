@@ -785,6 +785,17 @@ function App() {
                     {isMuted ? '🔇' : '🔊'}
                 </button>
 
+                {/* Autopilot Button — only shown during PLAYING, hidden from others */}
+                {roomState?.state === 'PLAYING' && roomState?.me && !roomState.me.isBot && (
+                    <button
+                        onClick={async () => { await api.toggleAutopilot(currentRoomId); }}
+                        className={`fixed top-14 right-3 z-50 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg shadow-lg transition ${roomState.me.isAutopilot ? 'bg-yellow-500 hover:bg-yellow-400' : 'bg-black/50 hover:bg-black/80'}`}
+                        title={roomState.me.isAutopilot ? 'Otopilot Açık — kapat' : 'Otopilot'}
+                    >
+                        🤖
+                    </button>
+                )}
+
                 {/* Emote Bubble */}
                 {activeEmote && (
                     <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center animate-bounce-slow pointer-events-none">

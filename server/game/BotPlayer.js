@@ -365,7 +365,9 @@ function canSkipClaudeForPlay(hand, currentTrick, trump) {
 
 async function botDecide(room, seatIndex) {
     const bot = room.seats[seatIndex];
-    if (!bot || !bot.isBot) return;
+    if (!bot) return;
+    const isAutopilot = room.autopilotPlayers?.has(bot.id);
+    if (!bot.isBot && !isAutopilot) return;
 
     const botId = bot.id;
     const hand = room.hands[seatIndex];
@@ -410,9 +412,10 @@ async function botDecide(room, seatIndex) {
 
             const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
             const response = await askClaude(prompt, bot.name, 'PLAY');
-            // Re-check: seat may have been taken over by a human while API call was in flight
-            if (!room.seats[seatIndex]?.isBot) {
-                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
+            // Re-check: seat may have been taken over / autopilot disabled while API call was in flight
+            const currentSeat = room.seats[seatIndex];
+            if (!currentSeat?.isBot && !room.autopilotPlayers?.has(currentSeat?.id)) {
+                console.log(`[BOT] ${bot.name}: bot/autopilot no longer active, discarding response`);
                 return;
             }
             console.log(`[BOT] ${bot.name} PLAY response: "${response}"`);

@@ -150,6 +150,14 @@ export const api = {
         return res.json();
     },
 
+    toggleAutopilot: async (roomId) => {
+        const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/autopilot`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return res.json();
+    },
+
     addBot: async (roomId, seatIndex) => {
         const res = await fetch(`${BASE_URL}/api/rooms/${roomId}/add-bot`, {
             method: 'POST',
