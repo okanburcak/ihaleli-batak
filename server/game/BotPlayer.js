@@ -269,57 +269,96 @@ function parsePlayResponse(response, hand, room) {
     return { card };
 }
 
-// --- Fallback Logic (rule-based, always legal) ---
+// --- Rule-based Logic ---
 
-function fallbackBid(room, botId) {
+function ruleBid(room, botId) {
     const seatIndex = room.seats.findIndex(s => s?.id === botId);
     const hand = room.hands[seatIndex];
     const { hcp, longestSuit } = handStrength(hand);
     const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
 
-    // Bid conservatively: open at 6 with decent hand, cap at 7
     const shouldBid = (hcp >= 12 && longestSuit >= 4 && minBid <= 6) ||
                       (hcp >= 14 && longestSuit >= 5 && minBid <= 7);
     const bidAmount = Math.min(minBid, 7);
     if (shouldBid) {
-        console.log(`[BOT] Fallback bid: ${bidAmount} (hcp=${hcp}, longestSuit=${longestSuit})`);
+        console.log(`[BOT] Rule bid: ${bidAmount} (hcp=${hcp}, longestSuit=${longestSuit})`);
         room.bid(botId, bidAmount);
     } else {
-        console.log(`[BOT] Fallback: passing bid (hcp=${hcp}, longestSuit=${longestSuit})`);
+        console.log(`[BOT] Rule bid: pass (hcp=${hcp}, longestSuit=${longestSuit})`);
         room.bid(botId, 0);
     }
 }
 
-function fallbackTrump(room, botId, hand) {
-    // Pick suit with most cards
-    const counts = { '♠': 0, '♥': 0, '♦': 0, '♣': 0 };
-    hand.forEach(c => counts[c.suit]++);
-    const suit = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-    console.log(`[BOT] Fallback trump: ${suit}`);
+function ruleTrump(room, botId, hand) {
+    // Pick suit with highest score: count + weighted HCP per suit
+    const suits = ['♠', '♥', '♦', '♣'];
+    const scores = {};
+    suits.forEach(s => {
+        const cards = hand.filter(c => c.suit === s);
+        const hcp = cards.reduce((sum, c) => sum + ({ A: 4, K: 3, Q: 2, J: 1 }[c.rank] || 0), 0);
+        scores[s] = cards.length * 2 + hcp;
+    });
+    const suit = suits.sort((a, b) => scores[b] - scores[a])[0];
+    console.log(`[BOT] Rule trump: ${suit}`);
     room.selectTrump(botId, suit);
 }
 
-function fallbackExchange(room, botId, hand, trump) {
-    // Bury lowest non-trump cards first, then lowest trump if needed
-    const nonTrump = hand
-        .filter(c => c.suit !== trump)
-        .sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
-    const trumpCards = hand
-        .filter(c => c.suit === trump)
-        .sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
+function ruleExchange(room, botId, hand, trump) {
+    // Score each card: higher = keep, lower = bury
+    // Keep: trump, aces, kings, cards in long suits
+    // Bury: low non-trump singletons/doubletons first
+    const suitCounts = { '♠': 0, '♥': 0, '♦': 0, '♣': 0 };
+    hand.forEach(c => suitCounts[c.suit]++);
 
-    const tobury = [...nonTrump, ...trumpCards].slice(0, 4);
-    console.log(`[BOT] Fallback exchange: burying ${tobury.map(c => c.suit+c.rank).join(',')}`);
+    const scored = hand.map(c => {
+        let score = getRankVal(c.rank); // base: rank value
+        if (c.suit === trump) score += 20; // strongly keep trump
+        score += suitCounts[c.suit]; // keep from long suits
+        return { card: c, score };
+    });
+
+    scored.sort((a, b) => a.score - b.score); // lowest score = bury first
+    const tobury = scored.slice(0, 4).map(s => s.card);
+    console.log(`[BOT] Rule exchange: burying ${tobury.map(c => c.suit + c.rank).join(',')}`);
     room.exchangeCards(botId, tobury);
 }
 
-function fallbackPlay(room, botId, seatIndex) {
+function rulePlay(room, botId, seatIndex) {
     const hand = room.hands[seatIndex];
     const legal = hand.filter(c => room.isValidMove(hand, c, room.currentTrick));
     const sorted = legal.sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
     const card = sorted[0];
-    console.log(`[BOT] Fallback play: ${card.suit}${card.rank}`);
+    console.log(`[BOT] Rule play: ${card.suit}${card.rank}`);
     room.playCard(botId, card);
+}
+
+// Returns true if this play situation is simple enough to skip Claude
+function canSkipClaudeForPlay(hand, currentTrick, trump) {
+    const legal = hand.filter(c => {
+        // We don't have room ref here so just use the hand; caller already checked legal.length > 1
+        return true;
+    });
+
+    const leadSuit = currentTrick.length > 0 ? currentTrick[0].card.suit : null;
+    const hasLead = leadSuit && hand.some(c => c.suit === leadSuit);
+    const hasTrump = hand.some(c => c.suit === trump);
+
+    // Void in both lead suit and trump — all options lose, just dump lowest
+    if (leadSuit && !hasLead && !hasTrump) return true;
+
+    // Must play trump but already losing to higher trump on table — dump lowest trump
+    if (leadSuit && !hasLead && hasTrump) {
+        const highestTrumpOnTable = currentTrick
+            .filter(t => t.card.suit === trump)
+            .reduce((best, t) => (!best || getRankVal(t.card.rank) > getRankVal(best.rank)) ? t.card : best, null);
+        const myTrumps = hand.filter(c => c.suit === trump).sort((a, b) => getRankVal(a.rank) - getRankVal(b.rank));
+        // If my highest trump still can't beat table — all trump options lose
+        if (highestTrumpOnTable && getRankVal(myTrumps[myTrumps.length - 1].rank) < getRankVal(highestTrumpOnTable.rank)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // --- Main Decision Function ---
@@ -346,60 +385,29 @@ async function botDecide(room, seatIndex) {
                 room.bid(botId, 0);
                 return;
             }
-            const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
-            const response = await askClaude(prompt, bot.name, 'BIDDING');
-            // Re-check: seat may have been taken over by a human while API call was in flight
-            if (!room.seats[seatIndex]?.isBot) {
-                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
-                return;
-            }
-            console.log(`[BOT] ${bot.name} BIDDING response: "${response}"`);
-            const action = parseBiddingResponse(response, minBid);
-            if (action) {
-                room.bid(botId, action.amount);
-            } else {
-                fallbackBid(room, botId);
-            }
+            ruleBid(room, botId);
 
         } else if (room.state === 'TRUMP_SELECTION') {
-            const prompt = buildTrumpPrompt(hand);
-            const response = await askClaude(prompt, bot.name, 'TRUMP');
-            // Re-check: seat may have been taken over by a human while API call was in flight
-            if (!room.seats[seatIndex]?.isBot) {
-                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
-                return;
-            }
-            console.log(`[BOT] ${bot.name} TRUMP response: "${response}"`);
-            const action = parseTrumpResponse(response);
-            if (action) {
-                room.selectTrump(botId, action.suit);
-            } else {
-                fallbackTrump(room, botId, hand);
-            }
+            ruleTrump(room, botId, hand);
 
         } else if (room.state === 'EXCHANGE_CARDS') {
-            const prompt = buildExchangePrompt(hand, room.trump);
-            const response = await askClaude(prompt, bot.name, 'EXCHANGE');
-            // Re-check: seat may have been taken over by a human while API call was in flight
-            if (!room.seats[seatIndex]?.isBot) {
-                console.log(`[BOT] ${bot.name}: seat taken over by human, discarding response`);
-                return;
-            }
-            console.log(`[BOT] ${bot.name} EXCHANGE response: "${response}"`);
-            const action = parseExchangeResponse(response, hand);
-            if (action) {
-                room.exchangeCards(botId, action.cards);
-            } else {
-                fallbackExchange(room, botId, hand, room.trump);
-            }
+            ruleExchange(room, botId, hand, room.trump);
 
         } else if (room.state === 'PLAYING') {
             const legal = hand.filter(c => room.isValidMove(hand, c, room.currentTrick));
+
+            // Skip Claude when only one option or situation is unambiguous
             if (legal.length === 1) {
-                console.log(`[BOT] ${bot.name}: only one legal card (${legal[0].suit}${legal[0].rank}), playing directly`);
+                console.log(`[BOT] ${bot.name}: only one legal card, playing directly`);
                 room.playCard(botId, legal[0]);
                 return;
             }
+            if (canSkipClaudeForPlay(hand, room.currentTrick, room.trump)) {
+                console.log(`[BOT] ${bot.name}: unambiguous losing position, using rule play`);
+                rulePlay(room, botId, seatIndex);
+                return;
+            }
+
             const prompt = buildPlayPrompt(hand, room.currentTrick, room.trump, room.roundScores, room.scores, room.seats, room.playedCardsHistory || []);
             const response = await askClaude(prompt, bot.name, 'PLAY');
             // Re-check: seat may have been taken over by a human while API call was in flight
@@ -412,20 +420,19 @@ async function botDecide(room, seatIndex) {
             if (action) {
                 room.playCard(botId, action.card);
             } else {
-                fallbackPlay(room, botId, seatIndex);
+                rulePlay(room, botId, seatIndex);
             }
         }
 
     } catch (err) {
         console.error(`[BOT] ${bot.name} Claude API error: ${err.message}`);
-        // Fallback based on current state
         try {
-            if (room.state === 'BIDDING') fallbackBid(room, botId);
-            else if (room.state === 'TRUMP_SELECTION') fallbackTrump(room, botId, hand);
-            else if (room.state === 'EXCHANGE_CARDS') fallbackExchange(room, botId, hand, room.trump);
-            else if (room.state === 'PLAYING') fallbackPlay(room, botId, seatIndex);
+            if (room.state === 'BIDDING') ruleBid(room, botId);
+            else if (room.state === 'TRUMP_SELECTION') ruleTrump(room, botId, hand);
+            else if (room.state === 'EXCHANGE_CARDS') ruleExchange(room, botId, hand, room.trump);
+            else if (room.state === 'PLAYING') rulePlay(room, botId, seatIndex);
         } catch (fallbackErr) {
-            console.error(`[BOT] ${bot.name} fallback also failed: ${fallbackErr.message}`);
+            console.error(`[BOT] ${bot.name} rule fallback also failed: ${fallbackErr.message}`);
         }
     }
 }
