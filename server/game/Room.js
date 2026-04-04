@@ -417,7 +417,8 @@ class Room {
             lastSound: this.lastSound,
             lastEvent: this.lastEvent,
             lastRoundSummary: this.lastRoundSummary,
-            kittySkipped: this.kittySkipped
+            kittySkipped: this.kittySkipped,
+            buriedCards: this.buriedCards
         };
     }
 
