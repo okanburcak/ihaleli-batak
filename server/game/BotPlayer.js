@@ -277,8 +277,8 @@ function ruleBid(room, botId) {
     const { hcp, longestSuit } = handStrength(hand);
     const minBid = room.winningBid.amount > 0 ? room.winningBid.amount + 1 : 5;
 
-    const shouldBid = (hcp >= 12 && longestSuit >= 4 && minBid <= 6) ||
-                      (hcp >= 14 && longestSuit >= 5 && minBid <= 7);
+    // 12-card hands average ~9-10 HCP; threshold must be lower than 13-card bridge standards
+    const shouldBid = hcp >= 9 && longestSuit >= 4 && minBid <= 7;
     const bidAmount = Math.min(minBid, 7);
     if (shouldBid) {
         console.log(`[BOT] Rule bid: ${bidAmount} (hcp=${hcp}, longestSuit=${longestSuit})`);
