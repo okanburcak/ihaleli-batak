@@ -387,7 +387,15 @@ async function botDecide(room, seatIndex) {
                 room.bid(botId, 0);
                 return;
             }
-            ruleBid(room, botId);
+            const prompt = buildBiddingPrompt(hand, room.winningBid, room.activeBidders || []);
+            const response = await askClaude(prompt, bot.name, 'BIDDING');
+            if (!room.seats[seatIndex]?.isBot && !room.autopilotPlayers?.has(room.seats[seatIndex]?.id)) return;
+            const action = parseBiddingResponse(response, minBid);
+            if (action) {
+                room.bid(botId, action.amount);
+            } else {
+                ruleBid(room, botId);
+            }
 
         } else if (room.state === 'TRUMP_SELECTION') {
             ruleTrump(room, botId, hand);
