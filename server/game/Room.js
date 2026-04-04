@@ -21,6 +21,7 @@ class Room {
         this.winningBid = { playerId: null, amount: 0 };
         this.trump = null;
         this.kitty = [];
+        this.originalKitty = [];
         this.buriedCards = [];
         this.kittySkipped = false;
 
@@ -418,8 +419,9 @@ class Room {
             lastEvent: this.lastEvent,
             lastRoundSummary: this.lastRoundSummary,
             kittySkipped: this.kittySkipped,
-            // Only reveal buried cards after the round ends — hide during PLAYING
-            buriedCards: (this.state === 'WAITING' || this.state === 'GAME_OVER') ? this.buriedCards : []
+            // Only reveal these after the round ends — hide during PLAYING
+            buriedCards: (this.state === 'WAITING' || this.state === 'GAME_OVER') ? this.buriedCards : [],
+            originalKitty: (this.state === 'WAITING' || this.state === 'GAME_OVER') ? this.originalKitty : []
         };
     }
 
@@ -442,6 +444,7 @@ class Room {
 
         this.state = 'BIDDING';
         this.trump = null;
+        this.originalKitty = [];
         this.buriedCards = [];
         this.kittySkipped = false;
         this.playedCardsHistory = [];
@@ -552,6 +555,7 @@ class Room {
         if (!cardsToBury || cardsToBury.length === 0) {
             // Player chose not to take the kitty.
             // Kitty remains unused.
+            this.originalKitty = [...this.kitty];
             this.kittySkipped = true;
             this.state = 'PLAYING';
             this.checkBotTurn();
@@ -575,6 +579,8 @@ class Room {
         this.hands[pIndex] = [...currentHand, ...markedKitty];
         this.deck.sortHand(this.hands[pIndex]); // Sort helper
 
+        // Save original kitty before clearing
+        this.originalKitty = [...this.kitty];
         // Critical Fix: Clear kitty so cards are not duplicated in room state
         this.kitty = [];
         // Critical Fix: Store buried cards

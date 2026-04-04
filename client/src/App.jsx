@@ -613,12 +613,12 @@ function App() {
                             ))}
                         </div>
 
-                        {/* Buried cards reveal */}
-                        {roomState.buriedCards?.length > 0 && (
+                        {/* Original kitty reveal */}
+                        {roomState.originalKitty?.length > 0 && (
                             <div className="px-6 pb-4">
-                                <p className="text-center text-stone-400 text-xs mb-2">Gömü kartları</p>
+                                <p className="text-center text-stone-400 text-xs mb-2">Gömüdeki kartlar</p>
                                 <div className="flex justify-center gap-1">
-                                    {roomState.buriedCards.map((card, i) => (
+                                    {roomState.originalKitty.map((card, i) => (
                                         <Card key={i} card={card} isPlayable={false} />
                                     ))}
                                 </div>
