@@ -410,9 +410,9 @@ function App() {
 
     const createTable = async () => {
         try {
-            const scoreStr = prompt("Oyun kaçta bitsin? (Örn: 51, 101)", "51");
+            const scoreStr = prompt("Oyun kaçta bitsin? (Örn: 31, 51, 101)", "31");
             if (scoreStr === null) return; // Cancelled
-            const score = parseInt(scoreStr) || 51;
+            const score = parseInt(scoreStr) || 31;
 
             const res = await api.createRoom(score);
             if (res.roomId) {

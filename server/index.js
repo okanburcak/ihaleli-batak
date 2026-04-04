@@ -70,7 +70,7 @@ const pushRoom = (room, excludePlayerId, payload) =>
         .forEach(p => sendPush(pushSubscriptions[p.id], payload));
 
 // Helper to get room, optionally creating with settings
-const getRoom = (roomId, winningScore = 51) => {
+const getRoom = (roomId, winningScore = 31) => {
     if (!rooms[roomId]) {
         rooms[roomId] = new Room(roomId, winningScore);
     }

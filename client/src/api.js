@@ -62,7 +62,7 @@ export const api = {
         return res.json();
     },
 
-    createRoom: async (winningScore = 51) => {
+    createRoom: async (winningScore = 31) => {
         const res = await fetch(`${BASE_URL}/api/rooms`, {
             method: 'POST',
             headers: getHeaders(),

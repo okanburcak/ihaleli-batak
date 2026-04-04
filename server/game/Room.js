@@ -2,9 +2,9 @@ const Deck = require('./Deck');
 const crypto = require('crypto');
 
 class Room {
-    constructor(roomId, winningScore = 51) {
+    constructor(roomId, winningScore = 31) {
         this.roomId = roomId;
-        this.winningScore = parseInt(winningScore) || 51;
+        this.winningScore = parseInt(winningScore) || 31;
         this.maxPlayers = 4;
 
         // Players array: { id(uuid), name, seatIndex, isAdmin, lastSeen, connected }
