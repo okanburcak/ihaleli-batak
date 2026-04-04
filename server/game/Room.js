@@ -418,7 +418,8 @@ class Room {
             lastEvent: this.lastEvent,
             lastRoundSummary: this.lastRoundSummary,
             kittySkipped: this.kittySkipped,
-            buriedCards: this.buriedCards
+            // Only reveal buried cards after the round ends — hide during PLAYING
+            buriedCards: (this.state === 'WAITING' || this.state === 'GAME_OVER') ? this.buriedCards : []
         };
     }
 
