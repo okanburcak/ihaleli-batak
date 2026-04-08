@@ -211,7 +211,7 @@ function parseBiddingResponse(response, minBid) {
     const match = response.match(/bid\s*(\d+)/);
     if (match) {
         const amount = parseInt(match[1]);
-        if (amount >= minBid && amount <= 12) return { amount };
+        if (amount >= minBid && amount <= 7) return { amount };
     }
     return null; // Invalid
 }
